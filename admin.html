@@ -271,7 +271,7 @@ async function saveAll(){
       content=content.slice(0,_ls+23)+'\n'+linksHtml+'\n'+content.slice(_le);
     }
 
-    const encoded=btoa(unescape(encodeURIComponent(content)));
+    const encoded=btoa(encodeURIComponent(content).replace(/%([0-9A-F]{2})/g,(_,p)=>String.fromCharCode('0x'+p)));
     const res=await fetch('https://api.github.com/repos/'+REPO+'/contents/'+FILE,{
       method:'PUT',
       headers:{Authorization:'token '+token,Accept:'application/vnd.github.v3+json','Content-Type':'application/json'},
