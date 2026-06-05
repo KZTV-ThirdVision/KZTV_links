@@ -246,12 +246,20 @@ ${linksHtml}
 </html>`;
 }
 
+function log(msg){
+  let d=document.getElementById('debugBox');
+  if(!d){d=document.createElement('div');d.id='debugBox';d.style.cssText='position:fixed;bottom:80px;left:10px;right:10px;background:rgba(0,0,0,.9);color:#0f0;font-family:monospace;font-size:11px;padding:10px;border-radius:8px;z-index:999;max-height:200px;overflow-y:auto;';document.body.appendChild(d);}
+  d.innerHTML+=msg+'<br>';d.scrollTop=d.scrollHeight;
+}
 async function saveAll(){
   const token=localStorage.getItem(TK);
   if(!token){showSt('Token manquant','er');return;}
   const btn=document.getElementById('saveBtn');
   btn.classList.add('saving');btn.textContent='...';
   showSt('Construction...');
+  log('=== SAVE START ===');
+  log('line1: '+document.getElementById('line1').value);
+  log('links: '+links.length);
 
   const line1=document.getElementById('line1').value;
   const line2=document.getElementById('line2').value;
@@ -259,6 +267,7 @@ async function saveAll(){
 
   try{
     // Lire SHA de index.html
+    log('fetching SHA...');
     const r=await fetch('https://api.github.com/repos/'+REPO+'/contents/index.html',{
       headers:{Authorization:'token '+token,Accept:'application/vnd.github.v3+json'}
     });
@@ -267,20 +276,23 @@ async function saveAll(){
     const sha=fileData.sha;
 
     // Encoder en base64
+    log('index built, size: '+newIndex.length);
     const bytes=new TextEncoder().encode(newIndex);
     let binary='';
     bytes.forEach(b=>binary+=String.fromCharCode(b));
     const encoded=btoa(binary);
 
     // Pousser
+    log('SHA: '+sha.slice(0,8)+' encoded size: '+encoded.length);
+    log('pushing to GitHub...');
     const res=await fetch('https://api.github.com/repos/'+REPO+'/contents/index.html',{
       method:'PUT',
       headers:{Authorization:'token '+token,Accept:'application/vnd.github.v3+json','Content-Type':'application/json'},
       body:JSON.stringify({message:'Admin update',content:encoded,sha})
     });
 
-    if(res.ok) showSt('✓ Live dans ~30s','ok');
-    else{const e=await res.json();showSt('Erreur: '+(e.message||'?'),'er');}
+    if(res.ok){log('PUSH OK!');showSt('✓ Live dans ~30s','ok');}
+    else{const e=await res.json();log('PUSH ERROR: '+JSON.stringify(e));showSt('Erreur: '+(e.message||'?'),'er');}
   }catch(e){showSt('Erreur réseau','er');console.error(e);}
   btn.classList.remove('saving');btn.textContent='Sauvegarder';
 }
