@@ -251,8 +251,12 @@ async function saveAll(){
     let content=decodeURIComponent(escape(atob(data.content.replace(/\n/g,''))));
 
     // Remplacement par marqueurs
-    content=content.replace(/<!--KZTV_LINE1-->.*?<!--\/KZTV_LINE1-->/,'<!--KZTV_LINE1-->'+line1+'<!--/KZTV_LINE1-->');
-    content=content.replace(/<!--KZTV_LINE2-->.*?<!--\/KZTV_LINE2-->/,'<!--KZTV_LINE2-->'+line2+'<!--/KZTV_LINE2-->');
+    const _l1s=content.indexOf('<!--KZTV_LINE1-->');
+    const _l1e=content.indexOf('<!--/KZTV_LINE1-->');
+    if(_l1s!==-1&&_l1e!==-1){content=content.slice(0,_l1s+17)+line1+content.slice(_l1e);}
+    const _l2s=content.indexOf('<!--KZTV_LINE2-->');
+    const _l2e=content.indexOf('<!--/KZTV_LINE2-->');
+    if(_l2s!==-1&&_l2e!==-1){content=content.slice(0,_l2s+17)+line2+content.slice(_l2e);}
 
     const linksHtml=links.map(lk=>
       '<a href="'+lk.u+'" target="_blank" class="link-card '+getCls(lk.l,lk.u)+'">'+
@@ -261,8 +265,11 @@ async function saveAll(){
       '<span class="link-arrow">→</span></a>'
     ).join('\n');
 
-    content=content.replace(/<!--KZTV_LINKS_START-->[\s\S]*?<!--KZTV_LINKS_END-->/,
-      '<!--KZTV_LINKS_START-->\n'+linksHtml+'\n<!--KZTV_LINKS_END-->');
+    const _ls=content.indexOf('<!--KZTV_LINKS_START-->');
+    const _le=content.indexOf('<!--KZTV_LINKS_END-->');
+    if(_ls!==-1&&_le!==-1){
+      content=content.slice(0,_ls+23)+'\n'+linksHtml+'\n'+content.slice(_le);
+    }
 
     const encoded=btoa(unescape(encodeURIComponent(content)));
     const res=await fetch('https://api.github.com/repos/'+REPO+'/contents/'+FILE,{
