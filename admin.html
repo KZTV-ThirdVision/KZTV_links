@@ -139,7 +139,7 @@ async function loadFromGitHub(token){
     }
     const data=await r.json();
     currentSha=data.sha;
-    const content=decodeURIComponent(escape(atob(data.content.replace(/\n/g,''))));
+    const content=(function(){const b=atob(data.content.replace(/\n/g,''));return decodeURIComponent(b.split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''))})();
 
     // Lire ligne1
     const m1=content.match(/<!--KZTV_LINE1-->(.*?)<!--\/KZTV_LINE1-->/);
@@ -248,7 +248,7 @@ async function saveAll(){
     if(!r.ok){showSt('Erreur auth','er');btn.classList.remove('saving');btn.textContent='Sauvegarder';return;}
     const data=await r.json();
     currentSha=data.sha;
-    let content=decodeURIComponent(escape(atob(data.content.replace(/\n/g,''))));
+    let content=(function(){const b=atob(data.content.replace(/\n/g,''));return decodeURIComponent(b.split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''))})();
 
     // Remplacement par marqueurs
     const _l1s=content.indexOf('<!--KZTV_LINE1-->');
