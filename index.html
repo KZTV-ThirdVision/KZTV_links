@@ -110,7 +110,7 @@ function getIcon(l,u){
 }
 
 // Charger les données depuis data.json
-fetch('https://raw.githubusercontent.com/KZTV-ThirdVision/KZTV_links/main/data.json?t='+Date.now())
+fetch('https://api.github.com/repos/KZTV-ThirdVision/KZTV_links/contents/data.json',{headers:{'Accept':'application/vnd.github.v3.raw','Cache-Control':'no-cache'}})
   .then(r=>r.json())
   .then(data=>{
     document.getElementById('line1').textContent=data.line1;
