@@ -1,9 +1,9 @@
 {
-  "line1": "L'ep s'appelle Dha ✦ ✦ ✦",
+  "line1": "L'ep s'appelle Dha ✦ ✦ ✦ — TEST",
   "line2": "Bienvenue de l'autre côté.",
   "links": [
     {
-      "label": "Spotify",
+      "label": "TEST MODIFICATION",
       "platform": "Musique",
       "url": "https://open.spotify.com/artist/2v6RwbFyutxTZbHPJX3eVH?si=1w1uRq-WRGe4utRNpJdWiw"
     },
