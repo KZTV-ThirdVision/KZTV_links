@@ -1,0 +1,31 @@
+{
+  "line1": "L'ep s'appelle Dha ✦ ✦ ✦",
+  "line2": "Bienvenue de l'autre côté.",
+  "links": [
+    {
+      "label": "Spotify",
+      "platform": "Musique",
+      "url": "https://open.spotify.com/artist/2v6RwbFyutxTZbHPJX3eVH?si=1w1uRq-WRGe4utRNpJdWiw"
+    },
+    {
+      "label": "Instagram",
+      "platform": "Réseaux",
+      "url": "https://www.instagram.com/kztv__"
+    },
+    {
+      "label": "YouTube",
+      "platform": "Vidéos",
+      "url": "https://www.youtube.com/@kztv_v2"
+    },
+    {
+      "label": "TikTok",
+      "platform": "Contenu court",
+      "url": "https://www.tiktok.com/@kztv__"
+    },
+    {
+      "label": "X (Twitter)",
+      "platform": "Actu",
+      "url": "https://x.com/KZTV__"
+    }
+  ]
+}
