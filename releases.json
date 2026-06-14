@@ -1,11 +1,13 @@
 [
   {
-    "title": "test",
-    "youtube": "https://www.youtube.com/watch?v=oM-wsGQH1b8&list=RDoM-wsGQH1b8&start_radio=1",
-    "spotify": "https://www.youtube.com/watch?v=oM-wsGQH1b8&list=RDoM-wsGQH1b8&start_radio=1",
-    "apple": "https://www.youtube.com/watch?v=oM-wsGQH1b8&list=RDoM-wsGQH1b8&start_radio=1",
-    "deezer": "https://www.youtube.com/watch?v=oM-wsGQHhttps://www.youtube.com/watch?v=oM-wsGQH1b8&list=RDoM-wsGQH1b8&start_radio=11b8&list=RDoM-wsGQH1b8&start_radio=1",
-    "amazon": "https://www.youtube.com/watch?v=oM-wsGQH1b8&list=RDoM-wsGQH1b8&start_radio=1"
+    "title": "KZTV 0 - LA DER",
+    "youtube": "https://youtu.be/R_cD3BD1bcQ",
+    "spotify": "https://open.spotify.com/intl-fr/album/4ycFOc5hsKjZjZplXYJWfU",
+    "apple": "https://music.apple.com/us/album/la-der-single/6774903074",
+    "deezer": "https://link.deezer.com/s/33yu5cgOAsuuwtWKzhGv4",
+    "amazon": "",
+    "coverUrl": "https://raw.githubusercontent.com/KZTV-ThirdVision/KZTV_links/main/releases/kztv-0-la-der-cover.jpg",
+    "bgUrl": "https://raw.githubusercontent.com/KZTV-ThirdVision/KZTV_links/main/releases/kztv-0-la-der-bg.jpg"
   },
   {
     "title": "",
@@ -13,6 +15,8 @@
     "spotify": "",
     "apple": "",
     "deezer": "",
-    "amazon": ""
+    "amazon": "",
+    "coverUrl": "",
+    "bgUrl": ""
   }
 ]
