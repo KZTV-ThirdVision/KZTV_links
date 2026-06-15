@@ -1,6 +1,7 @@
 [
   {
     "title": "KZTV 0 - LA DER",
+    "slug": "kztv-0",
     "youtube": "https://youtu.be/G_zVRRjp9AQ",
     "spotify": "https://open.spotify.com/intl-fr/album/4ycFOc5hsKjZjZplXYJWfU",
     "apple": "https://music.apple.com/us/album/la-der-single/6774903074",
@@ -11,6 +12,7 @@
   },
   {
     "title": "KZTV 1 -NOUVELLE ÈRE",
+    "slug": "kztv-1",
     "youtube": "https://youtu.be/yqjok8xHvSk?si=Emzq0ALTwz_gBEt6",
     "spotify": "https://open.spotify.com/intl-fr/album/5vPTAN6dLjauVvBvyVkLeZ?si=1_uzzg5HTHS2kOkJtFyMJQ",
     "apple": "https://music.apple.com/us/album/nouvelle-%C3%A8re-single/6776642522",
@@ -21,6 +23,7 @@
   },
   {
     "title": "KZTV 2 - CYCLE BOOMBAP",
+    "slug": "kztv-2",
     "youtube": "https://youtu.be/5TKUAQTOiD4",
     "spotify": "https://open.spotify.com/intl-fr/album/7JasAGFesANQSlNFFrNsLU?si=Dd6AfuCyTqWrzJ-qWggGzg",
     "apple": "https://music.apple.com/us/album/cycle-boombap-single/6779172152",
