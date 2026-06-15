@@ -340,6 +340,7 @@ function renderManagement(){
     div.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);';
     div.innerHTML='<span style="flex:1;font-size:13px;color:rgba(240,234,248,.6);">'+esc(rel.title||'Sans titre')+'</span>'+
     '<button onclick="copyUrl(\''+baseUrl+slug+'\')" style="background:rgba(123,47,255,.15);border:1px solid rgba(123,47,255,.3);border-radius:6px;padding:6px 10px;color:#c94dff;font-size:11px;cursor:pointer;font-family:Inter,sans-serif;">Copier</button>'+
+    '<button onclick="regenRelease('+i+')" style="background:rgba(30,215,96,.1);border:1px solid rgba(30,215,96,.2);border-radius:6px;padding:6px 10px;color:#1ed760;font-size:11px;cursor:pointer;font-family:Inter,sans-serif;">MAJ</button>'+
     '<button onclick="deleteFile(\''+slug+'.html\')" style="background:rgba(255,77,100,.1);border:1px solid rgba(255,77,100,.2);border-radius:6px;padding:6px 10px;color:#ff4d6d;font-size:11px;cursor:pointer;font-family:Inter,sans-serif;">Suppr</button>';
     mgmt.appendChild(div);
   });
@@ -350,6 +351,7 @@ function renderManagement(){
     div.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);';
     div.innerHTML='<span style="flex:1;font-size:13px;color:rgba(201,77,255,.6);">\u{1F4C1} '+esc(cat.title||'Catalogue')+'</span>'+
     '<button onclick="copyUrl(\''+baseUrl+slug+'\')" style="background:rgba(123,47,255,.15);border:1px solid rgba(123,47,255,.3);border-radius:6px;padding:6px 10px;color:#c94dff;font-size:11px;cursor:pointer;font-family:Inter,sans-serif;">Copier</button>'+
+    '<button onclick="regenCatalog('+i+')" style="background:rgba(30,215,96,.1);border:1px solid rgba(30,215,96,.2);border-radius:6px;padding:6px 10px;color:#1ed760;font-size:11px;cursor:pointer;font-family:Inter,sans-serif;">MAJ</button>'+
     '<button onclick="deleteFile(\''+slug+'.html\')" style="background:rgba(255,77,100,.1);border:1px solid rgba(255,77,100,.2);border-radius:6px;padding:6px 10px;color:#ff4d6d;font-size:11px;cursor:pointer;font-family:Inter,sans-serif;">Suppr</button>';
     mgmt.appendChild(div);
   });
@@ -386,6 +388,34 @@ function deleteFile(filename){
     showSt('Fichier introuvable','er');
   });
 }
+function regenRelease(i){
+  var token=localStorage.getItem(TK);
+  if(!token){showSt('Token manquant','er');return;}
+  var rel=releases[i];
+  if(!rel){showSt('Sortie introuvable','er');return;}
+  var slug=rel.slug||slugify(rel.title||'nouveau-son');
+  showSt('Regénération '+slug+'...');
+  var html=buildReleasePage(rel);
+  pushFile(token,slug+'.html',html).then(function(r){
+    if(r.ok)showSt('✓ '+slug+' mis à jour','ok');
+    else showSt('Erreur MAJ','er');
+  }).catch(function(){showSt('Erreur réseau','er');});
+}
+
+function regenCatalog(i){
+  var token=localStorage.getItem(TK);
+  if(!token){showSt('Token manquant','er');return;}
+  var cat=catalogs[i];
+  if(!cat){showSt('Catalogue introuvable','er');return;}
+  var slug=cat.slug||'catalogue';
+  showSt('Regénération '+slug+'...');
+  var html=buildCatalogPage(cat);
+  pushFile(token,slug+'.html',html).then(function(r){
+    if(r.ok)showSt('✓ '+slug+' mis à jour','ok');
+    else showSt('Erreur MAJ','er');
+  }).catch(function(){showSt('Erreur réseau','er');});
+}
+
 </script>
 </body>
 </html>
