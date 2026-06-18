@@ -133,17 +133,17 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     <div class="pdot" id="d3"></div>
   </div>
   <div id="pin-pad">
-    <button class="pk" onclick="pinKey('1')">1</button>
-    <button class="pk" onclick="pinKey('2')">2</button>
-    <button class="pk" onclick="pinKey('3')">3</button>
-    <button class="pk" onclick="pinKey('4')">4</button>
-    <button class="pk" onclick="pinKey('5')">5</button>
-    <button class="pk" onclick="pinKey('6')">6</button>
-    <button class="pk" onclick="pinKey('7')">7</button>
-    <button class="pk" onclick="pinKey('8')">8</button>
-    <button class="pk" onclick="pinKey('9')">9</button>
-    <button class="pk" onclick="pinKey('del')" style="font-size:16px;">⌫</button>
-    <button class="pk" onclick="pinKey('0')">0</button>
+    <button class="pk" data-key="1">1</button>
+    <button class="pk" data-key="2">2</button>
+    <button class="pk" data-key="3">3</button>
+    <button class="pk" data-key="4">4</button>
+    <button class="pk" data-key="5">5</button>
+    <button class="pk" data-key="6">6</button>
+    <button class="pk" data-key="7">7</button>
+    <button class="pk" data-key="8">8</button>
+    <button class="pk" data-key="9">9</button>
+    <button class="pk" data-key="del" style="font-size:16px;">⌫</button>
+    <button class="pk" data-key="0">0</button>
     <button class="pk" style="opacity:.2;" disabled></button>
   </div>
   <div id="pin-err">Code incorrect</div>
@@ -275,7 +275,6 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
 <div id="notif"></div>
 
-<script>window.ZXing=null;</script>
 <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js" async onerror="console.warn('ZXing non chargé')"></script>
 <script>
 const SB_URL = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
@@ -316,6 +315,28 @@ function checkPin() {
     pinEntry = ''; updateDots();
   }
 }
+
+// Bind PIN pad — touchend + click pour iOS PWA
+(function() {
+  function bindPin() {
+    document.querySelectorAll('#pin-pad [data-key]').forEach(function(btn) {
+      // touchend évite le délai 300ms iOS
+      btn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        pinKey(btn.getAttribute('data-key'));
+      });
+      // click en fallback desktop
+      btn.addEventListener('click', function(e) {
+        pinKey(btn.getAttribute('data-key'));
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindPin);
+  } else {
+    bindPin();
+  }
+})();
 function changePin() {
   const v = document.getElementById('new-pin').value.trim();
   if (!/^\d{4}$/.test(v)) { showNotif('PIN doit être 4 chiffres','er'); return; }
