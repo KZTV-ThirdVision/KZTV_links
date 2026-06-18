@@ -237,28 +237,35 @@ function setYtStatus(msg, ok) {
 function loadYouTubeVideos() {
   setYtStatus('Chargement...', null);
   var url = 'https://www.googleapis.com/youtube/v3/search?part=snippet&channelId='+YT_CHANNEL+'&type=video&order=date&maxResults=50&key='+YT_KEY;
-  fetch(url)
-    .then(function(r){ return r.json(); })
-    .then(function(data) {
-      if (data.error) {
-        setYtStatus('Erreur API: '+data.error.message, false);
-        return;
-      }
-      if (!data.items || data.items.length === 0) {
-        setYtStatus('Aucune vidéo trouvée', false);
-        return;
-      }
-      ytVideos = data.items.map(function(item) {
-        return {
-          id: item.id.videoId,
-          title: item.snippet.title,
-          thumb: item.snippet.thumbnails.default.url
-        };
-      });
-      setYtStatus(ytVideos.length + ' vidéos chargées — tape pour chercher', true);
-    }).catch(function(e) {
-      setYtStatus('Erreur réseau: '+e.message, false);
+  // XMLHttpRequest — plus fiable que fetch en iOS PWA standalone
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.onload = function() {
+    if (xhr.status !== 200) {
+      setYtStatus('Erreur HTTP ' + xhr.status, false);
+      return;
+    }
+    var data;
+    try { data = JSON.parse(xhr.responseText); } catch(e) { setYtStatus('Erreur JSON', false); return; }
+    if (data.error) {
+      setYtStatus('Erreur API: ' + data.error.message, false);
+      return;
+    }
+    if (!data.items || data.items.length === 0) {
+      setYtStatus('Aucune vidéo trouvée', false);
+      return;
+    }
+    ytVideos = data.items.map(function(item) {
+      return {
+        id: item.id.videoId,
+        title: item.snippet.title,
+        thumb: item.snippet.thumbnails.default.url
+      };
     });
+    setYtStatus(ytVideos.length + ' vidéos ✓ — tape pour chercher', true);
+  };
+  xhr.onerror = function() { setYtStatus('Erreur réseau', false); };
+  xhr.send();
 }
 
 function filterYT(q) {
@@ -301,7 +308,8 @@ function tab(t) {
   document.querySelectorAll('.tb').forEach((b,i)=>b.className='tb'+((['scanner','spots','config'][i]===t)?' on':''));
   document.querySelectorAll('.panel').forEach(p=>p.className='panel');
   document.getElementById('p-'+t).className='panel on';
-  if(t==='spots')loadSpots();
+  if(t==='spots') loadSpots();
+  if(t==='scanner' && ytVideos.length===0) loadYouTubeVideos();
 }
 
 // SIZE
