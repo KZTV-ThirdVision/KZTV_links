@@ -155,18 +155,35 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
   <!-- SCANNER -->
   <div class="panel on" id="p-scanner">
-    <div class="stitle">Scanner un QR code</div>
-    <div id="cam-zone" onclick="document.getElementById('cam-in').click()">
-      <div id="cam-preview"><img id="cam-img"><div id="cam-result"></div></div>
-      <div id="cam-ph">
-        <div style="font-size:50px">📷</div>
-        <div style="font-size:14px;font-weight:600">Photographier le QR code</div>
-        <div style="font-size:12px;color:rgba(240,234,248,.35);text-align:center;max-width:200px">Ouvre l'appareil photo iOS</div>
+    <div class="stitle">Capturer l'URL du QR</div>
+
+    <!-- MÉTHODE 1 : Presse-papiers (recommandé) -->
+    <div style="background:rgba(123,47,255,.1);border:1px solid rgba(123,47,255,.25);border-radius:14px;padding:18px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:600;color:rgba(240,234,248,.5);margin-bottom:10px;letter-spacing:.08em;text-transform:uppercase;">① Méthode rapide</div>
+      <div style="font-size:13px;color:rgba(240,234,248,.6);margin-bottom:14px;line-height:1.6;">Scanne le QR avec <strong style="color:#f0eaf8">l'app Caméra iOS</strong>, maintiens appuyé sur la notification → <strong style="color:#f0eaf8">Copier le lien</strong>, puis :</div>
+      <button class="cta" onclick="pasteFromClipboard()" style="margin-top:0;">
+        📋 Coller depuis le presse-papiers
+      </button>
+    </div>
+
+    <!-- MÉTHODE 2 : Photo (fallback) -->
+    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:600;color:rgba(240,234,248,.35);margin-bottom:10px;letter-spacing:.08em;text-transform:uppercase;">② Ou photo (QR standard)</div>
+      <div id="cam-zone" onclick="document.getElementById('cam-in').click()" style="aspect-ratio:unset;border-radius:10px;padding:14px;margin-bottom:0;cursor:pointer;background:rgba(123,47,255,.06);border:1px dashed rgba(123,47,255,.2);display:flex;align-items:center;gap:12px;">
+        <div id="cam-preview" style="display:none;width:60px;height:60px;border-radius:8px;flex-shrink:0;overflow:hidden;"><img id="cam-img" style="width:100%;height:100%;object-fit:cover;"><div id="cam-result" style="display:none;"></div></div>
+        <div id="cam-ph" style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:28px">📷</div>
+          <div>
+            <div style="font-size:13px;font-weight:600">Photographier le QR</div>
+            <div style="font-size:11px;color:rgba(240,234,248,.35);">Fonctionne sur QR classiques</div>
+          </div>
+        </div>
       </div>
     </div>
+
     <input type="file" id="cam-in" accept="image/*" capture="environment" style="display:none" onchange="doScan(this)">
     <canvas id="cv" style="display:none"></canvas>
-    <div class="fld"><label>URL détectée</label><input type="url" id="url-in" placeholder="https://... (ou coller)"></div>
+    <div class="fld"><label>URL du QR code</label><input type="url" id="url-in" placeholder="https://..."></div>
     <div class="szsec">
       <div class="sztog" id="cm-tog" onclick="togSz('cm')"><span class="lbl">Centimètres</span><span class="val" id="cm-v">3 cm</span><span class="arr">▾</span></div>
       <div class="szpick" id="cm-pick"><div class="szinner"><button class="rbtn" onclick="adj('cm',-1)">−</button><div class="rnum" id="cm-n">3</div><button class="rbtn" onclick="adj('cm',1)">+</button></div></div>
@@ -228,6 +245,27 @@ function adj(t,d) {
   else{mmV=Math.max(0,Math.min(9,mmV+d));document.getElementById('mm-n').textContent=mmV;document.getElementById('mm-v').textContent=mmV+' mm';}
   var total=(cmV*10+mmV+2)/10;
   document.getElementById('sz-out').textContent=total.toFixed(1)+' cm × '+total.toFixed(1)+' cm';
+}
+
+// PRESSE-PAPIERS
+async function pasteFromClipboard() {
+  try {
+    var text = await navigator.clipboard.readText();
+    text = text.trim();
+    if (!text) { notif('Presse-papiers vide','er'); return; }
+    // Accepter URLs et textes bruts
+    if (!text.startsWith('http')) {
+      notif('Pas d\'URL dans le presse-papiers','er');
+      return;
+    }
+    document.getElementById('url-in').value = text;
+    notif('URL collée ✓', 'ok');
+  } catch(e) {
+    // iOS PWA peut bloquer clipboard sans permission — proposer coller manuel
+    var inp = document.getElementById('url-in');
+    inp.focus();
+    notif('Colle manuellement dans le champ URL', '');
+  }
 }
 
 // QR SCAN
