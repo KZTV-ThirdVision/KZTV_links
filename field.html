@@ -252,56 +252,87 @@ function doScan(inp) {
   fr.readAsDataURL(file);
 }
 
-// Redimensionner pour accélérer le traitement (ZXing n'a pas besoin de 12MP)
-function resizeCanvas(srcCanvas, maxSize) {
-  var w = srcCanvas.width, h = srcCanvas.height;
+// ─── PREPROCESSING QR ─────────────────────────────────────
+
+function toCanvas(img, maxSize) {
+  var w = img.naturalWidth || img.width;
+  var h = img.naturalHeight || img.height;
   var scale = Math.min(1, maxSize / Math.max(w, h));
   var c = document.createElement('canvas');
-  c.width = Math.round(w * scale); c.height = Math.round(h * scale);
-  c.getContext('2d').drawImage(srcCanvas, 0, 0, c.width, c.height);
+  c.width = Math.round(w * scale);
+  c.height = Math.round(h * scale);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   return c;
 }
 
-// Seuillage adaptatif de Bradley (integral image — O(n), rapide)
-function adaptiveThreshold(canvas, blockPct, C, invert) {
+// Égalisation d'histogramme — étire le contraste sur tout 0-255
+function histEq(canvas) {
+  var c = document.createElement('canvas');
+  c.width = canvas.width; c.height = canvas.height;
+  var ctx = c.getContext('2d');
+  ctx.drawImage(canvas, 0, 0);
+  var id = ctx.getImageData(0, 0, c.width, c.height);
+  var d = id.data, n = c.width * c.height;
+  // Convertir en gris + histogramme
+  var gray = new Uint8Array(n);
+  var hist = new Int32Array(256);
+  for (var p = 0; p < n; p++) {
+    var v = Math.round(0.299*d[p*4] + 0.587*d[p*4+1] + 0.114*d[p*4+2]);
+    gray[p] = v; hist[v]++;
+  }
+  // CDF
+  var cdf = new Int32Array(256);
+  cdf[0] = hist[0];
+  for (var i = 1; i < 256; i++) cdf[i] = cdf[i-1] + hist[i];
+  var cdfMin = 0;
+  for (var i = 0; i < 256; i++) { if (cdf[i] > 0) { cdfMin = cdf[i]; break; } }
+  // Map
+  for (var p = 0; p < n; p++) {
+    var eq = Math.round((cdf[gray[p]] - cdfMin) / (n - cdfMin) * 255);
+    d[p*4] = d[p*4+1] = d[p*4+2] = eq;
+  }
+  ctx.putImageData(id, 0, 0);
+  return c;
+}
+
+// Seuillage adaptatif (Bradley) — compare chaque pixel à son voisinage local
+function adaptThresh(canvas, blockPct, C, invert) {
   var c = document.createElement('canvas');
   c.width = canvas.width; c.height = canvas.height;
   var ctx = c.getContext('2d');
   ctx.drawImage(canvas, 0, 0);
   var id = ctx.getImageData(0, 0, c.width, c.height);
   var d = id.data, w = c.width, h = c.height;
-
-  // Convertir en niveaux de gris
   var gray = new Float32Array(w * h);
-  for (var i = 0; i < w * h; i++) {
-    gray[i] = 0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2];
-  }
-
-  // Image intégrale pour somme locale O(1) par pixel
-  var integ = new Float32Array((w+1) * (h+1));
+  for (var p = 0; p < w * h; p++)
+    gray[p] = 0.299*d[p*4] + 0.587*d[p*4+1] + 0.114*d[p*4+2];
+  // Image intégrale
+  var intg = new Float32Array((w+1) * (h+1));
   for (var y = 0; y < h; y++)
     for (var x = 0; x < w; x++)
-      integ[(y+1)*(w+1)+(x+1)] = gray[y*w+x] + integ[y*(w+1)+(x+1)] + integ[(y+1)*(w+1)+x] - integ[y*(w+1)+x];
-
+      intg[(y+1)*(w+1)+(x+1)] = gray[y*w+x] + intg[y*(w+1)+(x+1)] + intg[(y+1)*(w+1)+x] - intg[y*(w+1)+x];
   var half = Math.max(3, Math.round(Math.min(w,h) * blockPct / 2));
   for (var y = 0; y < h; y++) {
     for (var x = 0; x < w; x++) {
       var x1=Math.max(0,x-half), y1=Math.max(0,y-half);
       var x2=Math.min(w-1,x+half), y2=Math.min(h-1,y+half);
-      var cnt=(x2-x1+1)*(y2-y1+1);
-      var sum=integ[(y2+1)*(w+1)+(x2+1)]-integ[y1*(w+1)+(x2+1)]-integ[(y2+1)*(w+1)+x1]+integ[y1*(w+1)+x1];
-      var mean=sum/cnt;
-      var px = gray[y*w+x] < mean*(1-C/100) ? 0 : 255;
-      if (invert) px = 255 - px;
-      d[i=(y*w+x)*4] = d[i+1] = d[i+2] = px; d[i+3] = 255;
+      var cnt = (x2-x1+1) * (y2-y1+1);
+      var sum = intg[(y2+1)*(w+1)+(x2+1)] - intg[y1*(w+1)+(x2+1)] - intg[(y2+1)*(w+1)+x1] + intg[y1*(w+1)+x1];
+      var mean = sum / cnt;
+      var val = gray[y*w+x] < mean * (1 - C/100) ? 0 : 255;
+      if (invert) val = 255 - val;
+      var idx = (y*w+x)*4;
+      d[idx] = d[idx+1] = d[idx+2] = val; d[idx+3] = 255;
     }
   }
   ctx.putImageData(id, 0, 0);
-  return c.toDataURL('image/jpeg', 0.95);
+  return c;
 }
 
-// Extraction par saturation — parfait pour QR colorés (violet, rouge, etc.)
-function saturationExtract(canvas, invert) {
+// Extraction par saturation — QR coloré sur fond neutre/sombre
+// Utilise UNIQUEMENT la saturation, pas la luminance
+// Fond noir (sat=0) → BLANC, modules colorés (sat>seuil) → NOIR
+function satExtract(canvas, threshold, invert) {
   var c = document.createElement('canvas');
   c.width = canvas.width; c.height = canvas.height;
   var ctx = c.getContext('2d');
@@ -309,32 +340,32 @@ function saturationExtract(canvas, invert) {
   var id = ctx.getImageData(0, 0, c.width, c.height);
   var d = id.data;
   for (var i = 0; i < d.length; i += 4) {
-    var r=d[i]/255, g=d[i+1]/255, b=d[i+2]/255;
-    var mx=Math.max(r,g,b), mn=Math.min(r,g,b);
-    var sat = mx===0 ? 0 : (mx-mn)/mx;
-    var lum = 0.299*r + 0.587*g + 0.114*b;
-    // Pixel coloré (haute saturation) OU sombre → module QR
-    var isModule = sat > 0.15 || lum < 0.12;
-    var px = isModule ? 0 : 255;
-    if (invert) px = 255 - px;
-    d[i]=d[i+1]=d[i+2]=px; d[i+3]=255;
+    var r = d[i]/255, g = d[i+1]/255, b = d[i+2]/255;
+    var mx = Math.max(r,g,b), mn = Math.min(r,g,b);
+    var sat = mx === 0 ? 0 : (mx-mn)/mx;
+    // sat > threshold = pixel coloré = module QR = NOIR
+    // sat <= threshold = fond neutre/noir = BLANC
+    var val = sat > threshold ? 0 : 255;
+    if (invert) val = 255 - val;
+    d[i] = d[i+1] = d[i+2] = val; d[i+3] = 255;
   }
   ctx.putImageData(id, 0, 0);
-  return c.toDataURL('image/jpeg', 0.95);
+  return c;
 }
 
+function canvasToUrl(c) { return c.toDataURL('image/jpeg', 0.92); }
+
 async function tryZXing(dataUrl) {
-  var img = new Image();
   return new Promise(function(resolve) {
+    var img = new Image();
     img.onload = async function() {
       var found = null;
-      var hints = new Map();
-      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+      var hints = new Map([[ZXing.DecodeHintType.TRY_HARDER, true]]);
       try { found = (await new ZXing.BrowserQRCodeReader(hints).decodeFromImageElement(img)).getText(); } catch(e){}
       if (!found) { try { found = (await new ZXing.BrowserQRCodeReader().decodeFromImageUrl(dataUrl)).getText(); } catch(e){} }
-      resolve(found);
+      resolve(found || null);
     };
+    img.onerror = function() { resolve(null); };
     img.src = dataUrl;
   });
 }
@@ -342,35 +373,31 @@ async function tryZXing(dataUrl) {
 async function runZXing(src, res) {
   var found = null;
   var img = document.getElementById('cam-img');
-
-  // Canvas redimensionné (800px max pour vitesse)
-  var base = resizeCanvas((function(){
-    var c=document.createElement('canvas');
-    c.width=img.naturalWidth||img.width; c.height=img.naturalHeight||img.height;
-    c.getContext('2d').drawImage(img,0,0); return c;
-  })(), 800);
+  var base = toCanvas(img, 800); // Reduit à 800px max
+  var eq = histEq(base);         // Égalisé
 
   var passes = [
-    ['1/6 Original',         function(){ return base.toDataURL('image/jpeg',0.92); }],
-    ['2/6 Inversé',          function(){ return adaptiveThreshold(base, 0.12, 8, true); }],
-    ['3/6 Binarisation',     function(){ return adaptiveThreshold(base, 0.12, 8, false); }],
-    ['4/6 Saturation',       function(){ return saturationExtract(base, false); }],
-    ['5/6 Sat. inversée',    function(){ return saturationExtract(base, true); }],
-    ['6/6 Bloc fin',         function(){ return adaptiveThreshold(base, 0.06, 5, false); }],
+    {label:'1/7', fn: function(){ return src; }},
+    {label:'2/7', fn: function(){ return canvasToUrl(adaptThresh(base, 0.12, 8, false)); }},
+    {label:'3/7', fn: function(){ return canvasToUrl(adaptThresh(base, 0.12, 8, true)); }},
+    {label:'4/7', fn: function(){ return canvasToUrl(satExtract(base, 0.12, false)); }},
+    {label:'5/7', fn: function(){ return canvasToUrl(satExtract(base, 0.12, true)); }},
+    {label:'6/7', fn: function(){ return canvasToUrl(adaptThresh(eq, 0.08, 5, false)); }},
+    {label:'7/7', fn: function(){ return canvasToUrl(satExtract(base, 0.06, false)); }},
   ];
 
   for (var pi = 0; pi < passes.length && !found; pi++) {
-    res.textContent = 'Analyse ' + passes[pi][0] + '...';
-    found = await tryZXing(passes[pi][1]());
+    res.textContent = 'Analyse ' + passes[pi].label + '...';
+    try { found = await tryZXing(passes[pi].fn()); } catch(e){}
   }
 
   if (found) {
     document.getElementById('url-in').value = found;
-    res.textContent = '✓ ' + found.slice(0,50);
+    res.textContent = '\u2713 ' + found.slice(0,50);
     res.style.color = '#1ed760';
-    notif('QR détecté ✓', 'ok');
+    notif('QR d\u00e9tect\u00e9 \u2713', 'ok');
   } else {
-    res.textContent = '✗ Non détecté — recadre sur le QR uniquement';
+    res.textContent = '\u2717 Non d\u00e9tect\u00e9 \u2014 recadre sur le QR uniquement';
     res.style.color = '#ff4d6d';
     setTimeout(function(){
       document.getElementById('cam-ph').style.display='flex';
@@ -380,7 +407,7 @@ async function runZXing(src, res) {
   }
 }
 
-// GENERATE
+
 async function generate() {
   var url=document.getElementById('url-in').value.trim();
   if(!url||!url.startsWith('http')){notif('URL invalide','er');return;}
