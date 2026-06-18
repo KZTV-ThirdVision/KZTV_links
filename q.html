@@ -10,53 +10,45 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:#f0eaf8;overflow:hidden;}
 
-/* Fond simulé — site derrière */
-#bg-site{
-  position:fixed;inset:0;z-index:1;
-  background:var(--bg);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
-}
-.bg-favicon{width:52px;height:52px;border-radius:12px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:22px;}
-.bg-domain{font-size:16px;font-weight:600;color:rgba(240,234,248,.6);letter-spacing:.02em;}
-.bg-bar{width:200px;height:3px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
-.bg-bar-fill{height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);animation:shimmer 1.5s ease-in-out infinite;}
-@keyframes shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(200%);}}
-.bg-url{font-size:11px;color:rgba(240,234,248,.25);letter-spacing:.05em;max-width:280px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Site réel via proxy */
+#site-frame{position:fixed;inset:0;width:100%;height:100%;border:none;z-index:1;}
 
-/* Overlay */
+/* Overlay transparent — attrape le premier tap */
+#tap-catcher{
+  position:fixed;inset:0;z-index:5;
+  background:transparent;
+  cursor:pointer;
+}
+
+/* Popup overlay */
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:10;opacity:0;transition:opacity .5s ease;pointer-events:none;}
-#overlay.on{opacity:1;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);pointer-events:all;}
+#overlay.on{opacity:1;background:rgba(0,0,0,.52);backdrop-filter:blur(3px);pointer-events:all;}
 
 /* Popup */
 #popup{
-  position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(110%);
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(115%);
   width:min(480px,100vw);z-index:20;
   transition:transform .5s cubic-bezier(.16,1,.3,1);
 }
 #popup.open{transform:translateX(-50%) translateY(0);}
 .inner{
-  background:rgba(10,6,20,.92);
-  backdrop-filter:blur(28px) saturate(1.4);
+  background:rgba(10,6,20,.93);
+  backdrop-filter:blur(30px) saturate(1.5);
   border:1px solid var(--border);border-bottom:none;
   border-radius:22px 22px 0 0;
-  padding:26px 22px 40px;
+  padding:26px 22px 44px;
 }
-
-/* Header */
-.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
 .ph img{height:22px;opacity:.9;}
 .badge{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,77,255,.7);background:rgba(123,47,255,.15);border:1px solid rgba(123,47,255,.3);border-radius:20px;padding:4px 10px;font-weight:600;}
-
 .headline{font-size:18px;font-weight:700;color:#f0eaf8;line-height:1.3;margin-bottom:6px;}
 .headline span{color:#c94dff;}
 .sub{font-size:13px;color:rgba(240,234,248,.45);line-height:1.6;margin-bottom:18px;}
 
 /* Player */
-#pw{background:rgba(123,47,255,.07);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:18px;cursor:pointer;transition:background .2s;}
-#pw:active{background:rgba(123,47,255,.15);}
+#pw{background:rgba(123,47,255,.08);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:18px;}
 #ac{display:flex;align-items:center;gap:13px;}
-.pbtn{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--v),var(--vl));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .1s;}
-.pbtn:active{transform:scale(.9);}
+.pbtn{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--v),var(--vl));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .pbtn svg{width:19px;height:19px;fill:#fff;}
 .tinfo{flex:1;overflow:hidden;}
 .ttitle{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f0eaf8;}
@@ -68,15 +60,12 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .eb:nth-child(3){height:9px;animation-delay:.3s}.eb:nth-child(4){height:17px;animation-delay:.1s}
 .eb:nth-child(5){height:5px;animation-delay:.25s}
 @keyframes ea{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
-.tap-hint{font-size:11px;color:rgba(240,234,248,.3);text-align:center;margin-top:8px;font-style:italic;}
 
-/* Liens */
 .links{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px;}
-.lnk{display:flex;align-items:center;gap:5px;padding:7px 12px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(255,255,255,.04);color:rgba(240,234,248,.7);text-decoration:none;font-size:11px;font-weight:500;transition:all .2s;}
+.lnk{display:flex;align-items:center;gap:5px;padding:7px 12px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(255,255,255,.04);color:rgba(240,234,248,.7);text-decoration:none;font-size:11px;font-weight:500;}
 .lnk:active{border-color:rgba(123,47,255,.4);background:rgba(123,47,255,.12);}
 
-/* CTA */
-#btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--v),var(--vl));border:none;border-radius:14px;color:#fff;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.02em;transition:opacity .2s;}
+#btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--v),var(--vl));border:none;border-radius:14px;color:#fff;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;}
 #btn:active{opacity:.85;}
 
 #yta{position:absolute;width:0;height:0;opacity:0;pointer-events:none;}
@@ -84,13 +73,10 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 </head>
 <body>
 
-<!-- Fond simulé -->
-<div id="bg-site">
-  <div class="bg-favicon" id="bg-icon">🌐</div>
-  <div class="bg-domain" id="bg-domain">chargement...</div>
-  <div class="bg-bar"><div class="bg-bar-fill"></div></div>
-  <div class="bg-url" id="bg-url"></div>
-</div>
+<iframe id="site-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+
+<!-- Overlay transparent — premier tap déclenche tout -->
+<div id="tap-catcher" onclick="onFirstTap()"></div>
 
 <div id="overlay"></div>
 
@@ -101,24 +87,23 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
       <span class="badge">pub</span>
     </div>
     <p class="headline">T'as scanné un QR code <span>KZTV.</span></p>
-    <p class="sub">C'est juste une pub. Le vrai site se charge derrière — appuie sur le bouton pour y accéder.</p>
+    <p class="sub">C'est juste une pub. Appuie sur le bouton pour accéder au vrai site.</p>
 
-    <div id="pw" onclick="togglePlay()">
+    <div id="pw">
       <div id="ac">
-        <button class="pbtn">
+        <button class="pbtn" onclick="togglePlay()">
           <svg id="iplay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           <svg id="ipause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
         </button>
         <div class="tinfo">
           <div class="ttitle" id="ttitle">KZTV — third vision</div>
-          <div class="tsub" id="tsub">Tap pour écouter</div>
+          <div class="tsub">third vision · 2026</div>
         </div>
         <div class="eq" id="eq">
           <div class="eb"></div><div class="eb"></div>
           <div class="eb"></div><div class="eb"></div><div class="eb"></div>
         </div>
       </div>
-      <div class="tap-hint" id="tap-hint">▶ Tape pour lancer la musique</div>
     </div>
 
     <div class="links" id="links"></div>
@@ -131,7 +116,6 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 <script>
 const SB_URL = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
-
 const LINKS = [
   {label:'Spotify', url:'https://open.spotify.com/artist/2v6RwbFyutxTZbHPJX3eVH'},
   {label:'Instagram', url:'https://www.instagram.com/kztv__'},
@@ -142,23 +126,16 @@ const LINKS = [
 const params = new URLSearchParams(location.search);
 const realSite = params.get('site') || '';
 const spotId   = params.get('id')   || '';
-
-let ytPlayer = null, playing = false, ytReady = false, interacted = false;
-let spotData = null;
+let ytPlayer = null, playing = false, ytReady = false, spotData = null;
+let firstTapped = false;
 
 async function init() {
-  // Afficher le domaine du vrai site en fond
+  // Charger le vrai site via proxy (supprime X-Frame-Options)
   if (realSite) {
-    try {
-      var u = new URL(realSite);
-      document.getElementById('bg-domain').textContent = u.hostname;
-      document.getElementById('bg-url').textContent = realSite;
-      // Favicon via Google
-      document.getElementById('bg-icon').innerHTML = '<img src="https://www.google.com/s2/favicons?domain='+u.hostname+'&sz=64" style="width:40px;height:40px;border-radius:8px;" onerror="this.parentElement.textContent='🌐'">';
-    } catch(e) {}
+    document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(realSite);
   }
 
-  // Charger config spot
+  // Charger config spot depuis Supabase
   if (spotId) {
     try {
       const r = await fetch(SB_URL+'/rest/v1/spots?id=eq.'+spotId+'&select=*', {
@@ -168,25 +145,37 @@ async function init() {
       if (d && d[0]) {
         spotData = d[0];
         if (!spotData.active) { window.location.href = spotData.real_url || realSite; return; }
-        // Incrémenter scans
         fetch(SB_URL+'/rest/v1/spots?id=eq.'+spotId, {
           method:'PATCH',
           headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
           body:JSON.stringify({scans_count:(spotData.scans_count||0)+1})
         });
-        if (spotData.track_title) {
-          document.getElementById('ttitle').textContent = spotData.track_title;
-          document.getElementById('tsub').textContent = 'KZTV · third vision';
-        }
+        if (spotData.track_title) document.getElementById('ttitle').textContent = spotData.track_title;
       }
     } catch(e) {}
   }
 
   renderLinks();
-  loadYT();
+  // Pré-charger le player YouTube sans l'activer
+  if (spotData?.yt_url) loadYT();
+}
 
-  // Popup après 1.5s — la page "se charge" puis le popup arrive
-  setTimeout(openPopup, 1500);
+function onFirstTap() {
+  if (firstTapped) return;
+  firstTapped = true;
+  // Retirer l'overlay — le site devient interactif
+  var catcher = document.getElementById('tap-catcher');
+  if (catcher) catcher.remove();
+  // Ouvrir le popup
+  document.getElementById('overlay').classList.add('on');
+  document.getElementById('popup').classList.add('open');
+  // Lancer la musique — on a une vraie interaction utilisateur ici
+  if (ytReady && ytPlayer) {
+    try { ytPlayer.seekTo(spotData?.start_time || 0); ytPlayer.playVideo(); } catch(e) {}
+  } else {
+    // Sera lancée quand le player sera prêt
+    window._autoplayPending = true;
+  }
 }
 
 function renderLinks() {
@@ -198,16 +187,9 @@ function renderLinks() {
   });
 }
 
-function openPopup() {
-  document.getElementById('overlay').classList.add('on');
-  document.getElementById('popup').classList.add('open');
-}
-
 function loadYT() {
-  const ytId = spotData?.yt_url || null;
-  if (!ytId) return;
-  window._ytId = ytId;
-  window._ytStart = spotData?.start_time || 0;
+  window._ytId = spotData.yt_url;
+  window._ytStart = spotData.start_time || 0;
   const s = document.createElement('script');
   s.src = 'https://www.youtube.com/iframe_api';
   document.head.appendChild(s);
@@ -217,16 +199,23 @@ window.onYouTubeIframeAPIReady = function() {
   if (!window._ytId) return;
   ytPlayer = new YT.Player('yta', {
     height:'1', width:'1', videoId: window._ytId,
-    playerVars:{autoplay:0, controls:0, fs:0, rel:0, playsinline:1, start: window._ytStart||0},
+    playerVars:{autoplay:0, controls:0, fs:0, rel:0, playsinline:1},
     events:{
       onReady: function(e) {
         ytReady = true;
-        // Essayer autoplay (marchera sur certains navigateurs)
-        try { e.target.playVideo(); } catch(err){}
+        e.target.seekTo(window._ytStart || 0);
+        // Si le premier tap a déjà eu lieu, lancer maintenant
+        if (window._autoplayPending) {
+          try { e.target.playVideo(); } catch(err) {}
+          window._autoplayPending = false;
+        }
       },
       onStateChange: function(e) {
-        if (e.data === YT.PlayerState.PLAYING) setPlay(true);
-        else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) setPlay(false);
+        const isP = e.data === YT.PlayerState.PLAYING;
+        playing = isP;
+        document.getElementById('iplay').style.display  = isP ? 'none'  : 'block';
+        document.getElementById('ipause').style.display = isP ? 'block' : 'none';
+        document.getElementById('eq').classList.toggle('on', isP);
       }
     }
   });
@@ -234,17 +223,7 @@ window.onYouTubeIframeAPIReady = function() {
 
 function togglePlay() {
   if (!ytReady || !ytPlayer) return;
-  interacted = true;
-  document.getElementById('tap-hint').style.display = 'none';
   playing ? ytPlayer.pauseVideo() : ytPlayer.playVideo();
-}
-
-function setPlay(isP) {
-  playing = isP;
-  document.getElementById('iplay').style.display  = isP ? 'none'  : 'block';
-  document.getElementById('ipause').style.display = isP ? 'block' : 'none';
-  document.getElementById('eq').classList.toggle('on', isP);
-  if (isP) document.getElementById('tap-hint').style.display = 'none';
 }
 
 function leave() {
