@@ -179,7 +179,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
         <input type="text" id="yt-search" placeholder="Rechercher dans tes vidéos..." oninput="filterYT(this.value)" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:11px 13px;color:#f0eaf8;font-family:'Inter',sans-serif;font-size:14px;outline:none;">
       </div>
       <div id="yt-list" style="background:rgba(8,4,18,.95);border:1px solid rgba(255,255,255,.1);border-radius:8px;margin-top:4px;overflow:hidden;display:none;max-height:220px;overflow-y:auto;"></div>
-      <div id="yt-selected" style="display:none;margin-top:8px;background:rgba(123,47,255,.12);border:1px solid rgba(123,47,255,.3);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+      <div id="yt-selected" style="display:none;margin-top:8px;background:rgba(123,47,255,.12);border:1px solid rgba(123,47,255,.3);border-radius:8px;padding:10px 12px;align-items:center;gap:10px;">
         <img id="yt-thumb" style="width:48px;height:36px;border-radius:4px;object-fit:cover;">
         <div>
           <div id="yt-title" style="font-size:13px;font-weight:600;color:#f0eaf8;"></div>
@@ -227,12 +227,18 @@ var ytVideos = [];
 var ytSelected = null;
 
 function loadYouTubeVideos() {
-  // Charger les 50 dernières vidéos de la chaîne
   var url = 'https://www.googleapis.com/youtube/v3/search?part=snippet&channelId='+YT_CHANNEL+'&type=video&order=date&maxResults=50&key='+YT_KEY;
   fetch(url)
     .then(function(r){ return r.json(); })
     .then(function(data) {
-      if (!data.items) return;
+      if (data.error) {
+        notif('YouTube API: '+data.error.message, 'er');
+        return;
+      }
+      if (!data.items || data.items.length === 0) {
+        notif('Aucune vidéo trouvée', 'er');
+        return;
+      }
       ytVideos = data.items.map(function(item) {
         return {
           id: item.id.videoId,
@@ -240,11 +246,15 @@ function loadYouTubeVideos() {
           thumb: item.snippet.thumbnails.default.url
         };
       });
-    }).catch(function(){});
+      notif(ytVideos.length + ' vidéos chargées ✓', 'ok');
+    }).catch(function(e) {
+      notif('Erreur chargement YouTube', 'er');
+    });
 }
 
 function filterYT(q) {
   var list = document.getElementById('yt-list');
+  if (ytVideos.length === 0) { notif('Vidéos pas encore chargées', 'er'); return; }
   var filtered = q.trim() === '' ? ytVideos : ytVideos.filter(function(v) {
     return v.title.toLowerCase().indexOf(q.toLowerCase()) >= 0;
   });
@@ -266,7 +276,8 @@ function selectYT(jsonStr) {
   document.getElementById('yt-list').style.display = 'none';
   document.getElementById('yt-thumb').src = v.thumb;
   document.getElementById('yt-title').textContent = v.title;
-  document.getElementById('yt-selected').style.display = 'flex';
+  var selBox = document.getElementById('yt-selected');
+  selBox.style.display = 'flex';
 }
 
 function clearYT() {
