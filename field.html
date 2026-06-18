@@ -21,7 +21,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 .pdot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.2);background:transparent;transition:background .2s,border-color .2s;}
 .pdot.filled{background:#7b2fff;border-color:#7b2fff;}
 #pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;width:100%;}
-.pk{padding:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;font-size:20px;font-weight:600;cursor:pointer;text-align:center;transition:background .1s;color:#f0eaf8;font-family:'Inter',sans-serif;-webkit-appearance:none;appearance:none;}
+.pk{padding:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;font-size:20px;font-weight:600;cursor:pointer;text-align:center;transition:background .1s;color:#f0eaf8;font-family:'Inter',sans-serif;-webkit-appearance:none;appearance:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;}
 .pk:active{background:rgba(123,47,255,.25);}
 #pin-err{font-size:12px;color:#ff4d6d;opacity:0;transition:opacity .3s;}
 
@@ -133,17 +133,17 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     <div class="pdot" id="d3"></div>
   </div>
   <div id="pin-pad">
-    <button class="pk" data-key="1">1</button>
-    <button class="pk" data-key="2">2</button>
-    <button class="pk" data-key="3">3</button>
-    <button class="pk" data-key="4">4</button>
-    <button class="pk" data-key="5">5</button>
-    <button class="pk" data-key="6">6</button>
-    <button class="pk" data-key="7">7</button>
-    <button class="pk" data-key="8">8</button>
-    <button class="pk" data-key="9">9</button>
-    <button class="pk" data-key="del" style="font-size:16px;">⌫</button>
-    <button class="pk" data-key="0">0</button>
+    <button class="pk" ontouchstart="event.preventDefault()" ontouchend="event.preventDefault();pinKey('1')">1</button>
+    <button class="pk" ontouchstart="event.preventDefault()" ontouchend="event.preventDefault();pinKey('2')">2</button>
+    <button class="pk" ontouchstart="event.preventDefault()" ontouchend="event.preventDefault();pinKey('3')">3</button>
+    <button class="pk" ontouchstart="event.preventDefault()" ontouchend="event.preventDefault();pinKey('4')">4</button>
+    <button class="pk" ontouchstart="event.preventDefault()" ontouchend="event.preventDefault();pinKey('5')">5</button>
+    <button class="pk" ontouchstart="event.preventDefault()" ontouchend="event.preventDefault();pinKey('6')">6</button>
+    <button class="pk" ontouchstart="event.preventDefault()" ontouchend="event.preventDefault();pinKey('7')">7</button>
+    <button class="pk" ontouchstart="event.preventDefault()" ontouchend="event.preventDefault();pinKey('8')">8</button>
+    <button class="pk" ontouchstart="event.preventDefault()" ontouchend="event.preventDefault();pinKey('9')">9</button>
+    <button class="pk" ontouchstart="event.preventDefault()" ontouchend="event.preventDefault();pinKey('del')" style="font-size:16px;">⌫</button>
+    <button class="pk" ontouchstart="event.preventDefault()" ontouchend="event.preventDefault();pinKey('0')">0</button>
     <button class="pk" style="opacity:.2;" disabled></button>
   </div>
   <div id="pin-err">Code incorrect</div>
@@ -277,30 +277,24 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
 <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js" async onerror="console.warn('ZXing non chargé')"></script>
 <script>
-const SB_URL = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
-const BASE_URL = 'https://kztv-links-dusky.vercel.app/q';
-const PIN_KEY  = 'kztv_field_pin';
-const DEFAULT_PIN = '1234';
+// ─── PIN — défini en premier pour être dispo dès le chargement ───
+var pinEntry = '';
+var PIN_KEY  = 'kztv_field_pin';
+var DEFAULT_PIN = '1234';
 
-let pinEntry = '';
-let cmVal = 3, mmVal = 0;
-let genUrl = '';
-
-// ─── PIN ───────────────────────────────────────────────────
 function pinKey(k) {
   if (k === 'del') { pinEntry = pinEntry.slice(0,-1); }
   else if (pinEntry.length < 4) { pinEntry += k; }
   updateDots();
-  if (pinEntry.length === 4) checkPin();
+  if (pinEntry.length === 4) setTimeout(checkPin, 50);
 }
 function updateDots() {
-  for (let i=0; i<4; i++) {
+  for (var i=0; i<4; i++) {
     document.getElementById('d'+i).className = 'pdot' + (i < pinEntry.length ? ' filled' : '');
   }
 }
 function checkPin() {
-  const stored = localStorage.getItem(PIN_KEY) || DEFAULT_PIN;
+  var stored = localStorage.getItem(PIN_KEY) || DEFAULT_PIN;
   if (pinEntry === stored) {
     document.getElementById('pin-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
@@ -308,7 +302,7 @@ function checkPin() {
     loadSpots();
   } else {
     document.getElementById('pin-err').style.opacity = '1';
-    setTimeout(() => {
+    setTimeout(function() {
       document.getElementById('pin-err').style.opacity = '0';
       pinEntry = ''; updateDots();
     }, 1200);
@@ -316,27 +310,15 @@ function checkPin() {
   }
 }
 
-// Bind PIN pad — touchend + click pour iOS PWA
-(function() {
-  function bindPin() {
-    document.querySelectorAll('#pin-pad [data-key]').forEach(function(btn) {
-      // touchend évite le délai 300ms iOS
-      btn.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        pinKey(btn.getAttribute('data-key'));
-      });
-      // click en fallback desktop
-      btn.addEventListener('click', function(e) {
-        pinKey(btn.getAttribute('data-key'));
-      });
-    });
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindPin);
-  } else {
-    bindPin();
-  }
-})();
+
+const SB_URL = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
+const BASE_URL = 'https://kztv-links-dusky.vercel.app/q';
+
+let cmVal = 3, mmVal = 0;
+let genUrl = '';
+
+
 function changePin() {
   const v = document.getElementById('new-pin').value.trim();
   if (!/^\d{4}$/.test(v)) { showNotif('PIN doit être 4 chiffres','er'); return; }
