@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="KZTV Field">
@@ -72,7 +72,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 #cam-ph{display:flex;flex-direction:column;align-items:center;gap:10px;}
 .fld{margin-bottom:12px;}
 .fld label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);display:block;margin-bottom:6px;font-weight:600;}
-.fld input,.fld textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:11px 13px;color:#f0eaf8;font-family:'Inter',sans-serif;font-size:14px;outline:none;}
+.fld input,.fld textarea,.fld select{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:11px 13px;color:#f0eaf8;font-family:'Inter',sans-serif;font-size:16px;outline:none;}
 .fld input:focus{border-color:#7b2fff;}
 .fld input::placeholder{color:rgba(240,234,248,.2);}
 
@@ -176,7 +176,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     <div class="fld">
       <label>Son à jouer (ta chaîne YouTube)</label>
       <div style="position:relative;">
-        <input type="text" id="yt-search" placeholder="Rechercher dans tes vidéos..." oninput="filterYT(this.value)" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:11px 13px;color:#f0eaf8;font-family:'Inter',sans-serif;font-size:14px;outline:none;">
+        <input type="text" id="yt-search" placeholder="Rechercher dans tes vidéos..." oninput="filterYT(this.value)" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:11px 13px;color:#f0eaf8;font-family:'Inter',sans-serif;font-size:16px;outline:none;">
       </div>
       <div id="yt-list" style="background:rgba(8,4,18,.95);border:1px solid rgba(255,255,255,.1);border-radius:8px;margin-top:4px;overflow:hidden;display:none;max-height:220px;overflow-y:auto;"></div>
       <div id="yt-selected" style="display:none;margin-top:8px;background:rgba(123,47,255,.12);border:1px solid rgba(123,47,255,.3);border-radius:8px;padding:10px 12px;align-items:center;gap:10px;">
@@ -387,6 +387,15 @@ function notif(msg,t){
   if(t==='er')n.classList.add('notif-er');
   setTimeout(function(){n.className='';},3000);
 }
+
+// Scroll input au-dessus du clavier iOS
+document.addEventListener('focusin', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+    setTimeout(function() {
+      e.target.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 350);
+  }
+});
 
 // Init size display
 adj('cm',0);
