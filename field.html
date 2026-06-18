@@ -352,59 +352,53 @@ function processPhoto(input) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const src = e.target.result;
-    document.getElementById('cam-img').src = src;
+    const img = document.getElementById('cam-img');
+    img.src = src;
     document.getElementById('cam-preview').style.display = 'block';
     document.getElementById('cam-placeholder').style.display = 'none';
 
-    const image = new Image();
-    image.onload = function() {
-      // Essayer à plusieurs résolutions + modes
-      const attempts = [
-        {scale: 1.0,   invert: 'dontInvert'},
-        {scale: 0.5,   invert: 'dontInvert'},
-        {scale: 0.75,  invert: 'attemptBoth'},
-        {scale: 1.0,   invert: 'onlyInvert'},
-        {scale: 0.33,  invert: 'attemptBoth'},
-      ];
-
-      const canvas = document.getElementById('scan-canvas');
-      const ctx = canvas.getContext('2d');
+    img.onload = async function() {
       let found = null;
 
-      for (let a of attempts) {
-        const w = Math.round(image.width * a.scale);
-        const h = Math.round(image.height * a.scale);
-        canvas.width = w;
-        canvas.height = h;
+      // Tentative 1 : ZXing TRY_HARDER
+      try {
+        const hints = new Map();
+        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+        const r1 = new ZXing.BrowserQRCodeReader(hints);
+        const res1 = await r1.decodeFromImageElement(img);
+        if (res1) found = res1.getText();
+      } catch(e) {}
 
-        // Dessiner l'image
-        ctx.drawImage(image, 0, 0, w, h);
+      // Tentative 2 : ZXing sans hints
+      if (!found) {
+        try {
+          const r2 = new ZXing.BrowserQRCodeReader();
+          const res2 = await r2.decodeFromImageElement(img);
+          if (res2) found = res2.getText();
+        } catch(e) {}
+      }
 
-        // Prétraitement : augmenter le contraste
-        const raw = ctx.getImageData(0, 0, w, h);
-        const d = raw.data;
-        for (let i = 0; i < d.length; i += 4) {
-          // Niveaux de gris
-          const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
-          // Seuil adaptatif simple (binarisation)
-          const val = gray < 128 ? 0 : 255;
-          d[i] = d[i+1] = d[i+2] = val;
-          // Garder alpha
-        }
-        ctx.putImageData(raw, 0, 0);
-
-        const imageData = ctx.getImageData(0, 0, w, h);
-        const code = jsQR(imageData.data, w, h, {inversionAttempts: a.invert});
-        if (code && code.data) { found = code.data; break; }
+      // Tentative 3 : ZXing via URL directe
+      if (!found) {
+        try {
+          const hints3 = new Map();
+          hints3.set(ZXing.DecodeHintType.TRY_HARDER, true);
+          const r3 = new ZXing.BrowserQRCodeReader(hints3);
+          const res3 = await r3.decodeFromImageUrl(src);
+          if (res3) found = res3.getText();
+        } catch(e) {}
       }
 
       if (found) {
         document.getElementById('url-detected').value = found;
         resultEl.textContent = '✓ ' + found.slice(0, 55) + (found.length > 55 ? '…' : '');
         resultEl.style.color = '#1ed760';
+        document.getElementById('cam-zone').style.borderColor = '#1ed760';
+        setTimeout(() => { document.getElementById('cam-zone').style.borderColor = ''; }, 1500);
         showNotif('QR détecté ✓', 'ok');
       } else {
-        resultEl.textContent = '✗ Non détecté — essaie une photo plus cadrée sur le QR';
+        resultEl.textContent = '✗ Non détecté — recadre plus serré sur le QR';
         resultEl.style.color = '#ff4d6d';
         setTimeout(() => {
           document.getElementById('cam-placeholder').style.display = 'flex';
@@ -413,132 +407,8 @@ function processPhoto(input) {
         }, 3000);
       }
     };
-    image.src = src;
   };
   reader.readAsDataURL(file);
 }
 
-function adjustVal(type, delta) {
-  if (type === 'cm') {
-    cmVal = Math.min(20, Math.max(1, cmVal + delta));
-    document.getElementById('cm-val').textContent = cmVal;
-    document.getElementById('cm-display').textContent = cmVal + ' cm';
-  } else {
-    mmVal = Math.min(9, Math.max(0, mmVal + delta));
-    document.getElementById('mm-val').textContent = mmVal;
-    document.getElementById('mm-display').textContent = mmVal + ' mm';
-  }
-  updateSizeResult();
-}
-function updateSizeResult() {
-  const totalMm = cmVal * 10 + mmVal;
-  const stickerMm = totalMm + 2; // +2mm marge
-  const stickerCm = (stickerMm / 10).toFixed(1);
-  document.getElementById('sticker-size').textContent = stickerCm + ' cm × ' + stickerCm + ' cm';
-  document.getElementById('size-result').style.display = 'block';
-}
 
-// ─── GENERATE ──────────────────────────────────────────────
-async function generate() {
-  const url = document.getElementById('url-detected').value.trim();
-  if (!url || !url.startsWith('http')) { showNotif('Entre une URL valide','er'); return; }
-
-  document.getElementById('gen-btn').disabled = true;
-  showNotif('Sauvegarde...');
-
-  const label = document.getElementById('spot-label').value.trim() || 'Spot sans nom';
-  const track = document.getElementById('track-title').value.trim() || '';
-  const totalMm = cmVal * 10 + mmVal;
-
-  try {
-    const r = await fetch(`${SB_URL}/rest/v1/spots`, {
-      method: 'POST',
-      headers: {
-        'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY,
-        'Content-Type': 'application/json', 'Prefer': 'return=representation'
-      },
-      body: JSON.stringify({
-        label, real_url: url, active: true,
-        qr_size_cm: totalMm / 10,
-        track_title: track || null,
-        scans_count: 0
-      })
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.message || 'Erreur Supabase');
-
-    const spot = data[0];
-    genUrl = `${BASE_URL}?site=${encodeURIComponent(url)}&id=${spot.id}`;
-    document.getElementById('gen-url').textContent = genUrl;
-    document.getElementById('gen-url-box').style.display = 'block';
-    updateSizeResult();
-    showNotif('Spot sauvegardé ✓','ok');
-  } catch(e) {
-    showNotif('Erreur: '+e.message,'er');
-  }
-  document.getElementById('gen-btn').disabled = false;
-}
-
-function copyGenUrl() {
-  navigator.clipboard.writeText(genUrl).then(() => showNotif('Copié ✓','ok')).catch(() => {
-    const t = document.createElement('textarea');
-    t.value = genUrl; document.body.appendChild(t); t.select();
-    document.execCommand('copy'); document.body.removeChild(t);
-    showNotif('Copié ✓','ok');
-  });
-}
-
-// ─── SPOTS ─────────────────────────────────────────────────
-async function loadSpots() {
-  const list = document.getElementById('spots-list');
-  list.innerHTML = '<div class="empty">Chargement...</div>';
-  try {
-    const r = await fetch(`${SB_URL}/rest/v1/spots?select=*&order=created_at.desc`, {
-      headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
-    });
-    const data = await r.json();
-    if (!data.length) { list.innerHTML = '<div class="empty">Aucun spot enregistré</div>'; return; }
-    list.innerHTML = '';
-    data.forEach(spot => {
-      const card = document.createElement('div');
-      card.className = 'spot-card';
-      const domain = (() => { try { return new URL(spot.real_url).hostname; } catch(e) { return spot.real_url; } })();
-      card.innerHTML = `
-        <div style="width:52px;height:52px;border-radius:8px;background:rgba(123,47,255,.15);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">📍</div>
-        <div class="spot-info">
-          <div class="spot-label">${spot.label || 'Spot'}</div>
-          <div class="spot-url">${domain}</div>
-          <div class="spot-scans">${spot.scans_count || 0} scan${spot.scans_count !== 1 ? 's' : ''}</div>
-        </div>
-        <div class="spot-toggle">
-          <button class="toggle ${spot.active ? 'on' : 'off'}" onclick="toggleSpot('${spot.id}', ${!spot.active}, this)"></button>
-        </div>`;
-      list.appendChild(card);
-    });
-  } catch(e) {
-    list.innerHTML = '<div class="empty">Erreur de chargement</div>';
-  }
-}
-
-async function toggleSpot(id, newActive, btn) {
-  btn.className = 'toggle ' + (newActive ? 'on' : 'off');
-  await fetch(`${SB_URL}/rest/v1/spots?id=eq.${id}`, {
-    method: 'PATCH',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
-    body: JSON.stringify({active: newActive})
-  });
-  showNotif(newActive ? 'Spot activé ✓' : 'Spot désactivé','ok');
-}
-
-// ─── UTILS ─────────────────────────────────────────────────
-function showNotif(msg, type='') {
-  const n = document.getElementById('notif');
-  n.textContent = msg; n.className = 'notif show ' + type;
-  setTimeout(() => n.className = 'notif', 3000);
-}
-
-// Init size result
-updateSizeResult();
-</script>
-</body>
-</html>
