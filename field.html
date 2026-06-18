@@ -75,6 +75,23 @@ function pk(k) {
     }, 80);
   }
 }
+
+function toggleYtAcc() {
+  var body = document.getElementById('yt-acc-body');
+  var arrow = document.getElementById('yt-acc-arrow');
+  if (!body) return;
+  var isOpen = body.style.maxHeight && body.style.maxHeight !== '0px';
+  if (isOpen) {
+    body.style.maxHeight = '0px';
+    if (arrow) arrow.style.transform = '';
+  } else {
+    body.style.maxHeight = '400px';
+    if (arrow) arrow.style.transform = 'rotate(180deg)';
+    if (typeof ytVideos !== 'undefined' && ytVideos.length === 0 && typeof loadYouTubeVideos === 'function') loadYouTubeVideos();
+    if (typeof filterYT === 'function') setTimeout(function(){ filterYT(''); }, 50);
+    setTimeout(function() { var s=document.getElementById('yt-search'); if(s) s.focus(); }, 350);
+  }
+}
 </script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
