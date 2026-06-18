@@ -161,18 +161,20 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
   <div class="panel active" id="panel-scanner">
     <div class="section-title">Scanner un QR code</div>
 
-    <div id="video-wrap">
-      <video id="qr-video" autoplay playsinline muted></video>
-      <canvas id="scan-canvas" style="display:none;"></canvas>
-      <div id="scan-debug" style="position:absolute;bottom:6px;left:6px;right:6px;background:rgba(0,0,0,.7);color:#0f0;font-size:10px;padding:4px 8px;border-radius:4px;font-family:monospace;z-index:5;"></div>
-      <div class="scan-frame">
-        <div class="scan-line"></div>
-        <div class="scan-corner sc-tl"></div>
-        <div class="scan-corner sc-tr"></div>
-        <div class="scan-corner sc-bl"></div>
-        <div class="scan-corner sc-br"></div>
+    <!-- Bouton photo natif iOS -->
+    <div id="cam-zone" style="width:100%;aspect-ratio:1;border-radius:16px;overflow:hidden;background:rgba(123,47,255,.06);border:2px dashed rgba(123,47,255,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;margin-bottom:16px;cursor:pointer;position:relative;" onclick="document.getElementById('cam-input').click()">
+      <div id="cam-preview" style="display:none;width:100%;height:100%;position:absolute;inset:0;">
+        <img id="cam-img" style="width:100%;height:100%;object-fit:cover;">
+        <div id="cam-result" style="position:absolute;bottom:10px;left:10px;right:10px;background:rgba(0,0,0,.75);color:#1ed760;font-size:12px;padding:8px 12px;border-radius:8px;font-family:monospace;display:none;"></div>
+      </div>
+      <div id="cam-placeholder" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div style="font-size:52px;">📷</div>
+        <div style="font-size:14px;font-weight:600;color:#f0eaf8;">Photographier le QR code</div>
+        <div style="font-size:12px;color:rgba(240,234,248,.35);text-align:center;max-width:200px;">Ouvre l'appareil photo iOS — prends la photo nette</div>
       </div>
     </div>
+    <input type="file" id="cam-input" accept="image/*" capture="environment" style="display:none;" onchange="processPhoto(this)">
+    <canvas id="scan-canvas" style="display:none;"></canvas>
 
     <div class="field">
       <label>URL du QR code scanné</label>
@@ -284,9 +286,6 @@ const DEFAULT_PIN = '1234';
 let pinEntry = '';
 let cmVal = 3, mmVal = 0;
 let genUrl = '';
-let stream = null;
-let detector = null;
-let scanning = false;
 
 // ─── PIN ───────────────────────────────────────────────────
 function pinKey(k) {
@@ -335,112 +334,60 @@ function switchTab(tab) {
 }
 
 // ─── CAMERA ────────────────────────────────────────────────
-function dbg(msg) {
-  const el = document.getElementById('scan-debug');
-  if (el) el.textContent = msg;
+function startCamera() {
+  // Sur iOS on utilise input[capture] — pas de getUserMedia
+  // Rien à démarrer, le bouton photo gère tout
 }
 
-async function startCamera() {
-  dbg('Démarrage...');
-  try {
-    // Contraintes avec autofocus continu pour iOS
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: {ideal:'environment'},
-        width: {ideal: 1280},
-        height: {ideal: 720},
-        focusMode: {ideal: 'continuous'},
-        advanced: [{focusMode: 'continuous'}]
-      },
-      audio: false
-    });
+function processPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
 
-    // Appliquer autofocus via les tracks
-    const track = stream.getVideoTracks()[0];
-    if (track && track.applyConstraints) {
-      track.applyConstraints({advanced: [{focusMode: 'continuous'}]}).catch(() => {});
-    }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = document.getElementById('cam-img');
+    img.src = e.target.result;
+    document.getElementById('cam-preview').style.display = 'block';
+    document.getElementById('cam-placeholder').style.display = 'none';
 
-    dbg('Caméra OK — tap pour focuser');
-    const video = document.getElementById('qr-video');
-    video.srcObject = stream;
-    video.play().catch(e => dbg('play() err: '+e.message));
+    // Analyser avec jsQR
+    const image = new Image();
+    image.onload = function() {
+      const canvas = document.getElementById('scan-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      ctx.drawImage(image, 0, 0);
 
-    // Tap sur la vidéo = forcer le focus
-    document.getElementById('video-wrap').addEventListener('click', () => {
-      if (track && track.applyConstraints) {
-        track.applyConstraints({advanced: [{focusMode: 'single-shot'}]})
-          .then(() => { dbg('Focus forcé ✓'); setTimeout(() => dbg('Scan actif'), 800); })
-          .catch(() => dbg('Focus non supporté'));
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {inversionAttempts: 'attemptBoth'});
+
+      const resultEl = document.getElementById('cam-result');
+      if (code && code.data) {
+        document.getElementById('url-detected').value = code.data;
+        resultEl.textContent = '✓ ' + code.data.slice(0, 60);
+        resultEl.style.display = 'block';
+        resultEl.style.color = '#1ed760';
+        showNotif('QR détecté ✓', 'ok');
+      } else {
+        resultEl.textContent = '✗ QR non détecté — reprendre la photo';
+        resultEl.style.display = 'block';
+        resultEl.style.color = '#ff4d6d';
+        // Permettre de reprendre
+        setTimeout(() => {
+          document.getElementById('cam-placeholder').style.display = 'flex';
+          document.getElementById('cam-preview').style.display = 'none';
+          resultEl.style.display = 'none';
+        }, 2000);
       }
-    });
-
-    let attempts = 0;
-    const waitReady = setInterval(() => {
-      attempts++;
-      if (video.readyState >= 2 && video.videoWidth > 0) {
-        clearInterval(waitReady);
-        dbg('Scan actif — tap pour focuser');
-        scanning = true;
-        setInterval(scanFrame, 250);
-      }
-      if (attempts > 40) { clearInterval(waitReady); dbg('Timeout vidéo'); }
-    }, 150);
-  } catch(e) {
-    dbg('Err: '+e.message);
-    showNotif('Caméra: '+e.message, 'er');
-  }
+    };
+    image.src = e.target.result;
+    // Reset input pour permettre de reprendre la même photo
+    input.value = '';
+  };
+  reader.readAsDataURL(file);
 }
 
-function scanFrame() {
-  if (!scanning) return;
-  const video = document.getElementById('qr-video');
-  if (!video.videoWidth) return;
-  if (typeof jsQR === 'undefined') { dbg('jsQR non chargé'); return; }
-
-  const canvas = document.getElementById('scan-canvas');
-  const ctx = canvas.getContext('2d');
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-
-  // Crop au centre (80% de la zone) pour couvrir le cadre violet
-  const cropSize = Math.min(vw, vh) * 0.85;
-  const cx = (vw - cropSize) / 2;
-  const cy = (vh - cropSize) / 2;
-  const out = 400; // taille fixe pour jsQR
-  canvas.width = out;
-  canvas.height = out;
-  ctx.drawImage(video, cx, cy, cropSize, cropSize, 0, 0, out, out);
-
-  let imageData;
-  try { imageData = ctx.getImageData(0, 0, out, out); }
-  catch(e) { dbg('canvas err: '+e.message); return; }
-
-  const code = jsQR(imageData.data, out, out, {inversionAttempts: 'attemptBoth'});
-  if (code && code.data) {
-    const val = code.data;
-    const inp = document.getElementById('url-detected');
-    if (val !== inp.value) {
-      inp.value = val;
-      dbg('✓ ' + val.slice(0,50));
-      showNotif('QR détecté ✓','ok');
-      // Flash le cadre
-      const frame = document.querySelector('.scan-frame');
-      if (frame) { frame.style.borderColor='#1ed760'; setTimeout(()=>{frame.style.borderColor='';},600); }
-    }
-  }
-}
-
-// ─── TAILLE ────────────────────────────────────────────────
-function togglePicker(type) {
-  const tog = document.getElementById(type+'-toggle');
-  const pic = document.getElementById(type+'-picker');
-  const isOpen = pic.classList.contains('open');
-  // Fermer les deux d'abord
-  document.querySelectorAll('.size-picker').forEach(p => p.classList.remove('open'));
-  document.querySelectorAll('.size-toggle').forEach(t => t.classList.remove('open'));
-  if (!isOpen) { pic.classList.add('open'); tog.classList.add('open'); }
-}
 function adjustVal(type, delta) {
   if (type === 'cm') {
     cmVal = Math.min(20, Math.max(1, cmVal + delta));
