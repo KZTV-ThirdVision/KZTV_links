@@ -118,6 +118,8 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 #notif{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(8,4,18,.95);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:10px 20px;font-size:13px;color:rgba(240,234,248,.6);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 #notif.show{opacity:1;}.notif-ok{color:#1ed760!important;border-color:rgba(30,215,96,.3)!important;}.notif-er{color:#ff4d6d!important;border-color:rgba(255,77,100,.3)!important;}
 </style>
+<script src="/qr-scanner.umd.min.js"></script>
+<script>if(typeof QrScanner!=="undefined"){QrScanner.WORKER_PATH="/qr-scanner-worker.min.js";}</script>
 </head>
 <body>
 
@@ -233,6 +235,7 @@ function doScan(inp) {
   var file=inp.files[0]; if(!file)return; inp.value='';
   var res=document.getElementById('cam-result');
   res.textContent='Analyse...'; res.style.color='#f0eaf8'; res.style.display='block';
+  _lastFile = file; // sauvegarder pour qr-scanner
   var fr=new FileReader();
   fr.onload=function(e){
     var src=e.target.result;
@@ -280,13 +283,8 @@ function onNotFound(res) {
 }
 
 function loadAndRunZXing(src, res) {
-  if(typeof ZXing !== 'undefined') { runZXing(src,res); return; }
-  res.textContent='Chargement lib...';
-  var s=document.createElement('script');
-  s.src='https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
-  s.onload=function(){ runZXing(src,res); };
-  s.onerror=function(){ onNotFound(res); };
-  document.head.appendChild(s);
+  // Utiliser qr-scanner Nimiq (file direct = meilleur résultat)
+  runQrScanner(res);
 }
 
 // ─── PREPROCESSING QR ─────────────────────────────────────
