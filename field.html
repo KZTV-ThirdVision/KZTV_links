@@ -228,7 +228,7 @@ function adj(t,d) {
   document.getElementById('sz-out').textContent=total.toFixed(1)+' cm × '+total.toFixed(1)+' cm';
 }
 
-// QR SCAN — charge ZXing à la demande
+// QR SCAN
 function doScan(inp) {
   var file=inp.files[0]; if(!file)return; inp.value='';
   var res=document.getElementById('cam-result');
@@ -240,16 +240,53 @@ function doScan(inp) {
     document.getElementById('cam-preview').style.display='block';
     document.getElementById('cam-ph').style.display='none';
     document.getElementById('cam-img').onload=function(){
-      if(typeof ZXing!=='undefined'){runZXing(src,res);return;}
-      // Charger ZXing maintenant
-      var s=document.createElement('script');
-      s.src='https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
-      s.onload=function(){runZXing(src,res);};
-      s.onerror=function(){res.textContent='✗ Lib non chargée';res.style.color='#ff4d6d';};
-      document.head.appendChild(s);
+      // Essayer BarcodeDetector natif iOS en premier
+      if(typeof BarcodeDetector !== 'undefined') {
+        res.textContent='Analyse native iOS...';
+        var bd = new BarcodeDetector({formats:['qr_code','aztec','data_matrix','pdf417']});
+        bd.detect(document.getElementById('cam-img')).then(function(codes){
+          if(codes && codes.length > 0) {
+            onFound(codes[0].rawValue, res);
+          } else {
+            // Fallback ZXing
+            loadAndRunZXing(src, res);
+          }
+        }).catch(function(){
+          loadAndRunZXing(src, res);
+        });
+      } else {
+        loadAndRunZXing(src, res);
+      }
     };
   };
   fr.readAsDataURL(file);
+}
+
+function onFound(val, res) {
+  document.getElementById('url-in').value = val;
+  res.textContent = '\u2713 ' + val.slice(0,50);
+  res.style.color = '#1ed760';
+  notif('QR d\u00e9tect\u00e9 \u2713', 'ok');
+}
+
+function onNotFound(res) {
+  res.textContent = '\u2717 Non d\u00e9tect\u00e9 \u2014 essaie de recadrer';
+  res.style.color = '#ff4d6d';
+  setTimeout(function(){
+    document.getElementById('cam-ph').style.display='flex';
+    document.getElementById('cam-preview').style.display='none';
+    res.style.display='none';
+  }, 4000);
+}
+
+function loadAndRunZXing(src, res) {
+  if(typeof ZXing !== 'undefined') { runZXing(src,res); return; }
+  res.textContent='Chargement lib...';
+  var s=document.createElement('script');
+  s.src='https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
+  s.onload=function(){ runZXing(src,res); };
+  s.onerror=function(){ onNotFound(res); };
+  document.head.appendChild(s);
 }
 
 // ─── PREPROCESSING QR ─────────────────────────────────────
@@ -392,18 +429,9 @@ async function runZXing(src, res) {
   }
 
   if (found) {
-    document.getElementById('url-in').value = found;
-    res.textContent = '\u2713 ' + found.slice(0,50);
-    res.style.color = '#1ed760';
-    notif('QR d\u00e9tect\u00e9 \u2713', 'ok');
+    onFound(found, res);
   } else {
-    res.textContent = '\u2717 Non d\u00e9tect\u00e9 \u2014 recadre sur le QR uniquement';
-    res.style.color = '#ff4d6d';
-    setTimeout(function(){
-      document.getElementById('cam-ph').style.display='flex';
-      document.getElementById('cam-preview').style.display='none';
-      res.style.display='none';
-    }, 4000);
+    onNotFound(res);
   }
 }
 
