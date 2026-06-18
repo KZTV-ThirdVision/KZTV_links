@@ -146,9 +146,9 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 <!-- APP -->
 <div id="app">
   <div class="tabs">
-    <div class="tb on" onclick="tab('scanner')">Scanner</div>
-    <div class="tb" onclick="tab('spots')">Spots</div>
-    <div class="tb" onclick="tab('config')">Config</div>
+    <button class="tb on" id="tb-scanner" ontouchend="tab('scanner')" onclick="tab('scanner')">Scanner</button>
+    <button class="tb" id="tb-spots" ontouchend="tab('spots')" onclick="tab('spots')">Spots</button>
+    <button class="tb" id="tb-config" ontouchend="tab('config')" onclick="tab('config')">Config</button>
   </div>
 
   <!-- SCANNER -->
@@ -174,11 +174,30 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     <div id="szres">Sticker : <strong id="sz-out">3.2 cm × 3.2 cm</strong> (QR + 2mm)</div>
     <div class="fld"><label>Nom du spot</label><input type="text" id="sp-lbl" placeholder="Ex: Parking République"></div>
     <div class="fld">
-      <label>Délai avant popup (secondes)</label>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <input type="range" id="sp-delay" min="0.5" max="5" step="0.5" value="1.5" oninput="document.getElementById('delay-val').textContent=this.value+'s'" style="flex:1;accent-color:#7b2fff;">
-        <span id="delay-val" style="font-size:15px;font-weight:700;color:#c94dff;min-width:36px;">1.5s</span>
+      <label>Démarrer la musique à</label>
+      <div id="start-tog" onclick="toggleStartAcc()" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 16px;cursor:pointer;touch-action:manipulation;">
+        <span style="font-size:14px;color:rgba(240,234,248,.6);">À partir de</span>
+        <span id="start-display" style="font-size:15px;font-weight:700;color:#c94dff;">0:00</span>
+        <span id="start-arrow" style="color:rgba(240,234,248,.3);font-size:18px;transition:transform .3s;">▾</span>
       </div>
+      <div id="start-body" style="max-height:0;overflow:hidden;transition:max-height .3s ease;">
+        <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-top:none;border-radius:0 0 10px 10px;padding:16px;display:flex;align-items:center;justify-content:center;gap:24px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <button class="rbtn" ontouchend="adjStart('min',1)" onclick="adjStart('min',1)">+</button>
+            <div id="start-min" style="font-size:32px;font-weight:700;color:#f0eaf8;min-width:40px;text-align:center;">0</div>
+            <button class="rbtn" ontouchend="adjStart('min',-1)" onclick="adjStart('min',-1)">−</button>
+            <div style="font-size:11px;color:rgba(240,234,248,.3);">min</div>
+          </div>
+          <div style="font-size:32px;font-weight:300;color:rgba(240,234,248,.3);">:</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <button class="rbtn" ontouchend="adjStart('sec',1)" onclick="adjStart('sec',1)">+</button>
+            <div id="start-sec" style="font-size:32px;font-weight:700;color:#f0eaf8;min-width:40px;text-align:center;">00</div>
+            <button class="rbtn" ontouchend="adjStart('sec',-1)" onclick="adjStart('sec',-1)">−</button>
+            <div style="font-size:11px;color:rgba(240,234,248,.3);">sec</div>
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="sp-delay" value="0">
     </div>
     <div class="fld">
       <label>Son à jouer</label>
@@ -348,11 +367,14 @@ function clearYT() {
 
 // TABS
 function tab(t) {
-  document.querySelectorAll('.tb').forEach((b,i)=>b.className='tb'+((['scanner','spots','config'][i]===t)?' on':''));
-  document.querySelectorAll('.panel').forEach(p=>p.className='panel');
-  document.getElementById('p-'+t).className='panel on';
-  if(t==='spots') loadSpots();
-  if(t==='scanner' && ytVideos.length===0) loadYouTubeVideos();
+  ['scanner','spots','config'].forEach(function(n) {
+    var b = document.getElementById('tb-'+n);
+    if (b) b.className = 'tb' + (n===t ? ' on' : '');
+  });
+  document.querySelectorAll('.panel').forEach(function(p){ p.className='panel'; });
+  document.getElementById('p-'+t).className = 'panel on';
+  if (t==='spots') loadSpots();
+  if (t==='scanner' && ytVideos.length===0) loadYouTubeVideos();
 }
 
 // SIZE
@@ -363,6 +385,23 @@ function togSz(t) {
   document.querySelectorAll('.sztog').forEach(p=>p.classList.remove('open'));
   if(!was){pick.classList.add('open');tog.classList.add('open');}
 }
+var startMin=0, startSec=0;
+function toggleStartAcc() {
+  var body=document.getElementById('start-body');
+  var arrow=document.getElementById('start-arrow');
+  var isOpen=body.style.maxHeight!=='0px'&&body.style.maxHeight!=='';
+  body.style.maxHeight=isOpen?'0px':'200px';
+  arrow.style.transform=isOpen?'':'rotate(180deg)';
+}
+function adjStart(type,d) {
+  if(type==='min'){startMin=Math.max(0,Math.min(59,startMin+d));}
+  else{startSec=Math.max(0,Math.min(59,startSec+d));}
+  document.getElementById('start-min').textContent=startMin;
+  document.getElementById('start-sec').textContent=(startSec<10?'0':'')+startSec;
+  document.getElementById('start-display').textContent=startMin+':'+(startSec<10?'0':'')+startSec;
+  document.getElementById('sp-delay').value=startMin*60+startSec;
+}
+
 function adj(t,d) {
   if(t==='cm'){cmV=Math.max(1,Math.min(20,cmV+d));document.getElementById('cm-n').textContent=cmV;document.getElementById('cm-v').textContent=cmV+' cm';}
   else{mmV=Math.max(0,Math.min(9,mmV+d));document.getElementById('mm-n').textContent=mmV;document.getElementById('mm-v').textContent=mmV+' mm';}
@@ -397,9 +436,8 @@ async function generate() {
   var lbl=document.getElementById('sp-lbl').value||'Spot sans nom';
   var trkTitle = document.getElementById('sp-trk').value || null;
   var ytId = document.getElementById('sp-yt-id').value || null;
-  var popupDelay = parseFloat(document.getElementById('sp-delay').value) || 1.5;
   try{
-    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',popup_delay:popupDelay,scans_count:0})});
+    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',start_time:parseInt(document.getElementById('sp-delay').value)||0,scans_count:0})});
     var d=await r.json();
     if(!r.ok)throw new Error(d.message||'err');
     genUrl=BASE+'?site='+encodeURIComponent(url)+'&id='+d[0].id;
