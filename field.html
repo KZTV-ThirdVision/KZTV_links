@@ -118,8 +118,6 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 #notif{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(8,4,18,.95);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:10px 20px;font-size:13px;color:rgba(240,234,248,.6);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 #notif.show{opacity:1;}.notif-ok{color:#1ed760!important;border-color:rgba(30,215,96,.3)!important;}.notif-er{color:#ff4d6d!important;border-color:rgba(255,77,100,.3)!important;}
 </style>
-<script src="/qr-scanner.umd.min.js"></script>
-<script>if(typeof QrScanner!=="undefined"){QrScanner.WORKER_PATH="/qr-scanner-worker.min.js";}</script>
 </head>
 <body>
 
@@ -155,34 +153,15 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
   <!-- SCANNER -->
   <div class="panel on" id="p-scanner">
-    <div class="stitle">Capturer l'URL du QR</div>
+    <div class="stitle">Nouveau spot</div>
 
-    <!-- MÉTHODE 1 : Presse-papiers (recommandé) -->
-    <div style="background:rgba(123,47,255,.1);border:1px solid rgba(123,47,255,.25);border-radius:14px;padding:18px;margin-bottom:12px;">
-      <div style="font-size:12px;font-weight:600;color:rgba(240,234,248,.5);margin-bottom:10px;letter-spacing:.08em;text-transform:uppercase;">① Méthode rapide</div>
-      <div style="font-size:13px;color:rgba(240,234,248,.6);margin-bottom:14px;line-height:1.6;">Scanne le QR avec <strong style="color:#f0eaf8">l'app Caméra iOS</strong>, maintiens appuyé sur la notification → <strong style="color:#f0eaf8">Copier le lien</strong>, puis :</div>
-      <button class="cta" onclick="pasteFromClipboard()" style="margin-top:0;">
-        📋 Coller depuis le presse-papiers
-      </button>
-    </div>
-
-    <!-- MÉTHODE 2 : Photo (fallback) -->
-    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px;margin-bottom:12px;">
-      <div style="font-size:12px;font-weight:600;color:rgba(240,234,248,.35);margin-bottom:10px;letter-spacing:.08em;text-transform:uppercase;">② Ou photo (QR standard)</div>
-      <div id="cam-zone" onclick="document.getElementById('cam-in').click()" style="aspect-ratio:unset;border-radius:10px;padding:14px;margin-bottom:0;cursor:pointer;background:rgba(123,47,255,.06);border:1px dashed rgba(123,47,255,.2);display:flex;align-items:center;gap:12px;">
-        <div id="cam-preview" style="display:none;width:60px;height:60px;border-radius:8px;flex-shrink:0;overflow:hidden;"><img id="cam-img" style="width:100%;height:100%;object-fit:cover;"><div id="cam-result" style="display:none;"></div></div>
-        <div id="cam-ph" style="display:flex;align-items:center;gap:10px;">
-          <div style="font-size:28px">📷</div>
-          <div>
-            <div style="font-size:13px;font-weight:600">Photographier le QR</div>
-            <div style="font-size:11px;color:rgba(240,234,248,.35);">Fonctionne sur QR classiques</div>
-          </div>
-        </div>
+    <div style="background:rgba(123,47,255,.1);border:1px solid rgba(123,47,255,.25);border-radius:14px;padding:18px;margin-bottom:16px;">
+      <div style="font-size:13px;color:rgba(240,234,248,.55);margin-bottom:14px;line-height:1.6;">
+        Scanne le QR avec la <strong style="color:#f0eaf8">Caméra iOS</strong> → le site s'ouvre dans Safari → copie l'URL depuis la barre d'adresse → colle ici.
       </div>
+      <button class="cta" onclick="pasteFromClipboard()" style="margin-top:0;">📋 Coller l'URL depuis le presse-papiers</button>
     </div>
 
-    <input type="file" id="cam-in" accept="image/*" capture="environment" style="display:none" onchange="doScan(this)">
-    <canvas id="cv" style="display:none"></canvas>
     <div class="fld"><label>URL du QR code</label><input type="url" id="url-in" placeholder="https://..."></div>
     <div class="szsec">
       <div class="sztog" id="cm-tog" onclick="togSz('cm')"><span class="lbl">Centimètres</span><span class="val" id="cm-v">3 cm</span><span class="arr">▾</span></div>
@@ -273,7 +252,6 @@ function doScan(inp) {
   var file=inp.files[0]; if(!file)return; inp.value='';
   var res=document.getElementById('cam-result');
   res.textContent='Analyse...'; res.style.color='#f0eaf8'; res.style.display='block';
-  _lastFile = file; // sauvegarder pour qr-scanner
   var fr=new FileReader();
   fr.onload=function(e){
     var src=e.target.result;
