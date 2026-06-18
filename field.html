@@ -252,27 +252,75 @@ function doScan(inp) {
   fr.readAsDataURL(file);
 }
 
-function preprocessCanvas(srcCanvas, mode) {
-  // mode: 'normal', 'invert', 'enhance', 'invert+enhance'
+// Redimensionner pour accélérer le traitement (ZXing n'a pas besoin de 12MP)
+function resizeCanvas(srcCanvas, maxSize) {
+  var w = srcCanvas.width, h = srcCanvas.height;
+  var scale = Math.min(1, maxSize / Math.max(w, h));
   var c = document.createElement('canvas');
-  c.width = srcCanvas.width; c.height = srcCanvas.height;
+  c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+  c.getContext('2d').drawImage(srcCanvas, 0, 0, c.width, c.height);
+  return c;
+}
+
+// Seuillage adaptatif de Bradley (integral image — O(n), rapide)
+function adaptiveThreshold(canvas, blockPct, C, invert) {
+  var c = document.createElement('canvas');
+  c.width = canvas.width; c.height = canvas.height;
   var ctx = c.getContext('2d');
-  ctx.drawImage(srcCanvas, 0, 0);
-  var id = ctx.getImageData(0,0,c.width,c.height);
-  var d = id.data;
-  for (var i=0; i<d.length; i+=4) {
-    var r=d[i], g=d[i+1], b=d[i+2];
-    // Niveaux de gris
-    var gray = 0.299*r + 0.587*g + 0.114*b;
-    if (mode==='enhance' || mode==='invert+enhance') {
-      // Augmenter le contraste : stretch vers 0 ou 255
-      gray = gray < 128 ? Math.max(0, gray*0.5) : Math.min(255, 128 + (gray-128)*1.8);
+  ctx.drawImage(canvas, 0, 0);
+  var id = ctx.getImageData(0, 0, c.width, c.height);
+  var d = id.data, w = c.width, h = c.height;
+
+  // Convertir en niveaux de gris
+  var gray = new Float32Array(w * h);
+  for (var i = 0; i < w * h; i++) {
+    gray[i] = 0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2];
+  }
+
+  // Image intégrale pour somme locale O(1) par pixel
+  var integ = new Float32Array((w+1) * (h+1));
+  for (var y = 0; y < h; y++)
+    for (var x = 0; x < w; x++)
+      integ[(y+1)*(w+1)+(x+1)] = gray[y*w+x] + integ[y*(w+1)+(x+1)] + integ[(y+1)*(w+1)+x] - integ[y*(w+1)+x];
+
+  var half = Math.max(3, Math.round(Math.min(w,h) * blockPct / 2));
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      var x1=Math.max(0,x-half), y1=Math.max(0,y-half);
+      var x2=Math.min(w-1,x+half), y2=Math.min(h-1,y+half);
+      var cnt=(x2-x1+1)*(y2-y1+1);
+      var sum=integ[(y2+1)*(w+1)+(x2+1)]-integ[y1*(w+1)+(x2+1)]-integ[(y2+1)*(w+1)+x1]+integ[y1*(w+1)+x1];
+      var mean=sum/cnt;
+      var px = gray[y*w+x] < mean*(1-C/100) ? 0 : 255;
+      if (invert) px = 255 - px;
+      d[i=(y*w+x)*4] = d[i+1] = d[i+2] = px; d[i+3] = 255;
     }
-    if (mode==='invert' || mode==='invert+enhance') gray = 255 - gray;
-    d[i] = d[i+1] = d[i+2] = gray;
   }
   ctx.putImageData(id, 0, 0);
-  return c.toDataURL('image/jpeg', 0.92);
+  return c.toDataURL('image/jpeg', 0.95);
+}
+
+// Extraction par saturation — parfait pour QR colorés (violet, rouge, etc.)
+function saturationExtract(canvas, invert) {
+  var c = document.createElement('canvas');
+  c.width = canvas.width; c.height = canvas.height;
+  var ctx = c.getContext('2d');
+  ctx.drawImage(canvas, 0, 0);
+  var id = ctx.getImageData(0, 0, c.width, c.height);
+  var d = id.data;
+  for (var i = 0; i < d.length; i += 4) {
+    var r=d[i]/255, g=d[i+1]/255, b=d[i+2]/255;
+    var mx=Math.max(r,g,b), mn=Math.min(r,g,b);
+    var sat = mx===0 ? 0 : (mx-mn)/mx;
+    var lum = 0.299*r + 0.587*g + 0.114*b;
+    // Pixel coloré (haute saturation) OU sombre → module QR
+    var isModule = sat > 0.15 || lum < 0.12;
+    var px = isModule ? 0 : 255;
+    if (invert) px = 255 - px;
+    d[i]=d[i+1]=d[i+2]=px; d[i+3]=255;
+  }
+  ctx.putImageData(id, 0, 0);
+  return c.toDataURL('image/jpeg', 0.95);
 }
 
 async function tryZXing(dataUrl) {
@@ -295,32 +343,25 @@ async function runZXing(src, res) {
   var found = null;
   var img = document.getElementById('cam-img');
 
-  // Préparer un canvas à partir de l'image originale
-  var baseCanvas = document.createElement('canvas');
-  baseCanvas.width = img.naturalWidth || img.width;
-  baseCanvas.height = img.naturalHeight || img.height;
-  baseCanvas.getContext('2d').drawImage(img, 0, 0);
+  // Canvas redimensionné (800px max pour vitesse)
+  var base = resizeCanvas((function(){
+    var c=document.createElement('canvas');
+    c.width=img.naturalWidth||img.width; c.height=img.naturalHeight||img.height;
+    c.getContext('2d').drawImage(img,0,0); return c;
+  })(), 800);
 
-  // Tentative 1 : image originale
-  res.textContent = 'Analyse (1/4)...';
-  found = await tryZXing(src);
+  var passes = [
+    ['1/6 Original',         function(){ return base.toDataURL('image/jpeg',0.92); }],
+    ['2/6 Inversé',          function(){ return adaptiveThreshold(base, 0.12, 8, true); }],
+    ['3/6 Binarisation',     function(){ return adaptiveThreshold(base, 0.12, 8, false); }],
+    ['4/6 Saturation',       function(){ return saturationExtract(base, false); }],
+    ['5/6 Sat. inversée',    function(){ return saturationExtract(base, true); }],
+    ['6/6 Bloc fin',         function(){ return adaptiveThreshold(base, 0.06, 5, false); }],
+  ];
 
-  // Tentative 2 : image inversée (QR sombre sur fond clair → fond clair sur sombre)
-  if (!found) {
-    res.textContent = 'Analyse (2/4)...';
-    found = await tryZXing(preprocessCanvas(baseCanvas, 'invert'));
-  }
-
-  // Tentative 3 : contraste renforcé
-  if (!found) {
-    res.textContent = 'Analyse (3/4)...';
-    found = await tryZXing(preprocessCanvas(baseCanvas, 'enhance'));
-  }
-
-  // Tentative 4 : inversé + contraste
-  if (!found) {
-    res.textContent = 'Analyse (4/4)...';
-    found = await tryZXing(preprocessCanvas(baseCanvas, 'invert+enhance'));
+  for (var pi = 0; pi < passes.length && !found; pi++) {
+    res.textContent = 'Analyse ' + passes[pi][0] + '...';
+    found = await tryZXing(passes[pi][1]());
   }
 
   if (found) {
@@ -329,13 +370,13 @@ async function runZXing(src, res) {
     res.style.color = '#1ed760';
     notif('QR détecté ✓', 'ok');
   } else {
-    res.textContent = '✗ Non détecté — essaie avec plus de lumière';
+    res.textContent = '✗ Non détecté — recadre sur le QR uniquement';
     res.style.color = '#ff4d6d';
     setTimeout(function(){
-      document.getElementById('cam-ph').style.display = 'flex';
-      document.getElementById('cam-preview').style.display = 'none';
-      res.style.display = 'none';
-    }, 3000);
+      document.getElementById('cam-ph').style.display='flex';
+      document.getElementById('cam-preview').style.display='none';
+      res.style.display='none';
+    }, 4000);
   }
 }
 
