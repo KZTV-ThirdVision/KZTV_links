@@ -236,10 +236,9 @@ function setYtStatus(msg, ok) {
 }
 function loadYouTubeVideos() {
   setYtStatus('Chargement...', null);
-  var url = 'https://www.googleapis.com/youtube/v3/search?part=snippet&channelId='+YT_CHANNEL+'&type=video&order=date&maxResults=50&key='+YT_KEY;
-  // XMLHttpRequest — plus fiable que fetch en iOS PWA standalone
+  // Appel via proxy Vercel /api/videos — même domaine, pas de restriction iOS
   var xhr = new XMLHttpRequest();
-  xhr.open('GET', url, true);
+  xhr.open('GET', '/api/videos', true);
   xhr.onload = function() {
     if (xhr.status !== 200) {
       setYtStatus('Erreur HTTP ' + xhr.status, false);
@@ -248,20 +247,14 @@ function loadYouTubeVideos() {
     var data;
     try { data = JSON.parse(xhr.responseText); } catch(e) { setYtStatus('Erreur JSON', false); return; }
     if (data.error) {
-      setYtStatus('Erreur API: ' + data.error.message, false);
+      setYtStatus('Erreur: ' + data.error, false);
       return;
     }
-    if (!data.items || data.items.length === 0) {
+    if (!data.videos || data.videos.length === 0) {
       setYtStatus('Aucune vidéo trouvée', false);
       return;
     }
-    ytVideos = data.items.map(function(item) {
-      return {
-        id: item.id.videoId,
-        title: item.snippet.title,
-        thumb: item.snippet.thumbnails.default.url
-      };
-    });
+    ytVideos = data.videos;
     setYtStatus(ytVideos.length + ' vidéos ✓ — tape pour chercher', true);
   };
   xhr.onerror = function() { setYtStatus('Erreur réseau', false); };
