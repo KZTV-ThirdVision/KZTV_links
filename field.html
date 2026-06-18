@@ -342,48 +342,78 @@ function startCamera() {
 function processPhoto(input) {
   const file = input.files[0];
   if (!file) return;
+  input.value = '';
+
+  const resultEl = document.getElementById('cam-result');
+  resultEl.textContent = 'Analyse en cours...';
+  resultEl.style.color = '#f0eaf8';
+  resultEl.style.display = 'block';
 
   const reader = new FileReader();
   reader.onload = function(e) {
-    const img = document.getElementById('cam-img');
-    img.src = e.target.result;
+    const src = e.target.result;
+    document.getElementById('cam-img').src = src;
     document.getElementById('cam-preview').style.display = 'block';
     document.getElementById('cam-placeholder').style.display = 'none';
 
-    // Analyser avec jsQR
     const image = new Image();
     image.onload = function() {
+      // Essayer à plusieurs résolutions + modes
+      const attempts = [
+        {scale: 1.0,   invert: 'dontInvert'},
+        {scale: 0.5,   invert: 'dontInvert'},
+        {scale: 0.75,  invert: 'attemptBoth'},
+        {scale: 1.0,   invert: 'onlyInvert'},
+        {scale: 0.33,  invert: 'attemptBoth'},
+      ];
+
       const canvas = document.getElementById('scan-canvas');
       const ctx = canvas.getContext('2d');
-      canvas.width = image.width;
-      canvas.height = image.height;
-      ctx.drawImage(image, 0, 0);
+      let found = null;
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {inversionAttempts: 'attemptBoth'});
+      for (let a of attempts) {
+        const w = Math.round(image.width * a.scale);
+        const h = Math.round(image.height * a.scale);
+        canvas.width = w;
+        canvas.height = h;
 
-      const resultEl = document.getElementById('cam-result');
-      if (code && code.data) {
-        document.getElementById('url-detected').value = code.data;
-        resultEl.textContent = '✓ ' + code.data.slice(0, 60);
-        resultEl.style.display = 'block';
+        // Dessiner l'image
+        ctx.drawImage(image, 0, 0, w, h);
+
+        // Prétraitement : augmenter le contraste
+        const raw = ctx.getImageData(0, 0, w, h);
+        const d = raw.data;
+        for (let i = 0; i < d.length; i += 4) {
+          // Niveaux de gris
+          const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+          // Seuil adaptatif simple (binarisation)
+          const val = gray < 128 ? 0 : 255;
+          d[i] = d[i+1] = d[i+2] = val;
+          // Garder alpha
+        }
+        ctx.putImageData(raw, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const code = jsQR(imageData.data, w, h, {inversionAttempts: a.invert});
+        if (code && code.data) { found = code.data; break; }
+      }
+
+      if (found) {
+        document.getElementById('url-detected').value = found;
+        resultEl.textContent = '✓ ' + found.slice(0, 55) + (found.length > 55 ? '…' : '');
         resultEl.style.color = '#1ed760';
         showNotif('QR détecté ✓', 'ok');
       } else {
-        resultEl.textContent = '✗ QR non détecté — reprendre la photo';
-        resultEl.style.display = 'block';
+        resultEl.textContent = '✗ Non détecté — essaie une photo plus cadrée sur le QR';
         resultEl.style.color = '#ff4d6d';
-        // Permettre de reprendre
         setTimeout(() => {
           document.getElementById('cam-placeholder').style.display = 'flex';
           document.getElementById('cam-preview').style.display = 'none';
           resultEl.style.display = 'none';
-        }, 2000);
+        }, 3000);
       }
     };
-    image.src = e.target.result;
-    // Reset input pour permettre de reprendre la même photo
-    input.value = '';
+    image.src = src;
   };
   reader.readAsDataURL(file);
 }
