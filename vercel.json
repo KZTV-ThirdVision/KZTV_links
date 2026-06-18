@@ -13,8 +13,8 @@
       "destination": "/index.html"
     },
     {
-      "source": "/:slug",
-      "destination": "/:slug.html"
+      "source": "/((?!api/).*)",
+      "destination": "/$1.html"
     }
   ]
 }
