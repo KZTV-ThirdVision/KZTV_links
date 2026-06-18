@@ -221,16 +221,16 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
       <div id="start-body" style="max-height:0;overflow:hidden;transition:max-height .3s ease;">
         <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-top:none;border-radius:0 0 10px 10px;padding:16px;display:flex;align-items:center;justify-content:center;gap:24px;">
           <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-            <button class="rbtn" ontouchend="adjStart('min',1)" onclick="adjStart('min',1)">+</button>
+            <button class="rbtn" onclick="adjStart('min',1)">+</button>
             <div id="start-min" style="font-size:32px;font-weight:700;color:#f0eaf8;min-width:40px;text-align:center;">0</div>
-            <button class="rbtn" ontouchend="adjStart('min',-1)" onclick="adjStart('min',-1)">−</button>
+            <button class="rbtn" onclick="adjStart('min',-1)">−</button>
             <div style="font-size:11px;color:rgba(240,234,248,.3);">min</div>
           </div>
           <div style="font-size:32px;font-weight:300;color:rgba(240,234,248,.3);">:</div>
           <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-            <button class="rbtn" ontouchend="adjStart('sec',1)" onclick="adjStart('sec',1)">+</button>
+            <button class="rbtn" onclick="adjStart('sec',1)">+</button>
             <div id="start-sec" style="font-size:32px;font-weight:700;color:#f0eaf8;min-width:40px;text-align:center;">00</div>
-            <button class="rbtn" ontouchend="adjStart('sec',-1)" onclick="adjStart('sec',-1)">−</button>
+            <button class="rbtn" onclick="adjStart('sec',-1)">−</button>
             <div style="font-size:11px;color:rgba(240,234,248,.3);">sec</div>
           </div>
         </div>
@@ -249,7 +249,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
         <button onclick="clearYT()" style="background:none;border:none;color:rgba(240,234,248,.3);font-size:20px;cursor:pointer;flex-shrink:0;">✕</button>
       </div>
       <!-- Accordéon sélecteur -->
-      <div id="yt-acc-tog" onclick="toggleYtAcc()" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 16px;cursor:pointer;">
+      <div id="yt-acc-tog" onclick="toggleYtAcc()" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 16px;cursor:pointer;width:100%;font-family:'Inter',sans-serif;-webkit-appearance:none;appearance:none;touch-action:manipulation;" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 16px;cursor:pointer;">
         <span style="font-size:14px;color:rgba(240,234,248,.5);" id="yt-acc-label">Choisir une vidéo...</span>
         <span id="yt-acc-arrow" style="color:rgba(240,234,248,.3);font-size:18px;transition:transform .3s;">▾</span>
       </div>
@@ -376,24 +376,7 @@ function selectYT(jsonStr) {
   document.getElementById('yt-acc-arrow').style.transform = '';
 }
 
-function toggleYtAcc() {
-  var body = document.getElementById('yt-acc-body');
-  var arrow = document.getElementById('yt-acc-arrow');
-  var isOpen = body.style.maxHeight !== '0px' && body.style.maxHeight !== '';
-  if (isOpen) {
-    body.style.maxHeight = '0px';
-    arrow.style.transform = '';
-  } else {
-    body.style.maxHeight = '400px';
-    arrow.style.transform = 'rotate(180deg)';
-    // Charger les vidéos si pas encore fait
-    if (ytVideos.length === 0) loadYouTubeVideos();
-    filterYT('');
-    setTimeout(function() {
-      document.getElementById('yt-search').focus();
-    }, 350);
-  }
-}
+// toggleYtAcc défini dans <head>
 
 function clearYT() {
   ytSelected = null;
@@ -414,6 +397,26 @@ function togSz(t) {
   if(!was){pick.classList.add('open');tog.classList.add('open');}
 }
 var startMin=0, startSec=0;
+
+function toggleYtAcc() {
+  var body = document.getElementById('yt-acc-body');
+  var arrow = document.getElementById('yt-acc-arrow');
+  if (!body) return;
+  var isOpen = body.style.maxHeight && body.style.maxHeight !== '0px';
+  if (isOpen) {
+    body.style.maxHeight = '0px';
+    if (arrow) arrow.style.transform = '';
+  } else {
+    body.style.maxHeight = '400px';
+    if (arrow) arrow.style.transform = 'rotate(180deg)';
+    if (typeof ytVideos !== 'undefined' && ytVideos.length === 0 && typeof loadYouTubeVideos === 'function') loadYouTubeVideos();
+    if (typeof filterYT === 'function') filterYT('');
+    setTimeout(function() {
+      var s = document.getElementById('yt-search');
+      if (s) s.focus();
+    }, 350);
+  }
+}
 function adj(t,d) {
   if(t==='cm'){cmV=Math.max(1,Math.min(20,cmV+d));document.getElementById('cm-n').textContent=cmV;document.getElementById('cm-v').textContent=cmV+' cm';}
   else{mmV=Math.max(0,Math.min(9,mmV+d));document.getElementById('mm-n').textContent=mmV;document.getElementById('mm-v').textContent=mmV+' mm';}
