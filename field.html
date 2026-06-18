@@ -21,7 +21,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 .pdot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.2);background:transparent;transition:background .2s,border-color .2s;}
 .pdot.filled{background:#7b2fff;border-color:#7b2fff;}
 #pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;width:100%;}
-.pk{padding:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;font-size:20px;font-weight:600;cursor:pointer;text-align:center;transition:background .1s;}
+.pk{padding:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;font-size:20px;font-weight:600;cursor:pointer;text-align:center;transition:background .1s;color:#f0eaf8;font-family:'Inter',sans-serif;-webkit-appearance:none;appearance:none;}
 .pk:active{background:rgba(123,47,255,.25);}
 #pin-err{font-size:12px;color:#ff4d6d;opacity:0;transition:opacity .3s;}
 
@@ -133,18 +133,18 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     <div class="pdot" id="d3"></div>
   </div>
   <div id="pin-pad">
-    <div class="pk" onclick="pinKey('1')">1</div>
-    <div class="pk" onclick="pinKey('2')">2</div>
-    <div class="pk" onclick="pinKey('3')">3</div>
-    <div class="pk" onclick="pinKey('4')">4</div>
-    <div class="pk" onclick="pinKey('5')">5</div>
-    <div class="pk" onclick="pinKey('6')">6</div>
-    <div class="pk" onclick="pinKey('7')">7</div>
-    <div class="pk" onclick="pinKey('8')">8</div>
-    <div class="pk" onclick="pinKey('9')">9</div>
-    <div class="pk" onclick="pinKey('del')" style="font-size:16px;">⌫</div>
-    <div class="pk" onclick="pinKey('0')">0</div>
-    <div class="pk" style="opacity:.2;pointer-events:none;"></div>
+    <button class="pk" onclick="pinKey('1')">1</button>
+    <button class="pk" onclick="pinKey('2')">2</button>
+    <button class="pk" onclick="pinKey('3')">3</button>
+    <button class="pk" onclick="pinKey('4')">4</button>
+    <button class="pk" onclick="pinKey('5')">5</button>
+    <button class="pk" onclick="pinKey('6')">6</button>
+    <button class="pk" onclick="pinKey('7')">7</button>
+    <button class="pk" onclick="pinKey('8')">8</button>
+    <button class="pk" onclick="pinKey('9')">9</button>
+    <button class="pk" onclick="pinKey('del')" style="font-size:16px;">⌫</button>
+    <button class="pk" onclick="pinKey('0')">0</button>
+    <button class="pk" style="opacity:.2;" disabled></button>
   </div>
   <div id="pin-err">Code incorrect</div>
 </div>
@@ -275,7 +275,8 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
 <div id="notif"></div>
 
-<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<script>window.ZXing=null;</script>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js" async onerror="console.warn('ZXing non chargé')"></script>
 <script>
 const SB_URL = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
@@ -362,6 +363,7 @@ function processPhoto(input) {
 
       // Tentative 1 : ZXing TRY_HARDER
       try {
+        if (typeof ZXing === 'undefined' || !ZXing) throw new Error('ZXing not loaded');
         const hints = new Map();
         hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
         hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
@@ -373,6 +375,7 @@ function processPhoto(input) {
       // Tentative 2 : ZXing sans hints
       if (!found) {
         try {
+          if (typeof ZXing === 'undefined' || !ZXing) throw new Error('ZXing not loaded');
           const r2 = new ZXing.BrowserQRCodeReader();
           const res2 = await r2.decodeFromImageElement(img);
           if (res2) found = res2.getText();
@@ -382,6 +385,7 @@ function processPhoto(input) {
       // Tentative 3 : ZXing via URL directe
       if (!found) {
         try {
+          if (typeof ZXing === 'undefined' || !ZXing) throw new Error('ZXing not loaded');
           const hints3 = new Map();
           hints3.set(ZXing.DecodeHintType.TRY_HARDER, true);
           const r3 = new ZXing.BrowserQRCodeReader(hints3);
