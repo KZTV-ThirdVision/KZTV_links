@@ -283,8 +283,31 @@ function onNotFound(res) {
 }
 
 function loadAndRunZXing(src, res) {
-  // Utiliser qr-scanner Nimiq (file direct = meilleur résultat)
   runQrScanner(res);
+}
+
+// ─── QR SCANNER NIMIQ ──────────────────────────────────────
+function runQrScanner(res) {
+  if (!_lastFile) { onNotFound(res); return; }
+  if (typeof QrScanner === 'undefined') { onNotFound(res); return; }
+  res.textContent = 'Analyse...';
+  QrScanner.scanImage(_lastFile, {returnDetailedScanResult: true})
+    .then(function(result) { onFound(result.data, res); })
+    .catch(function() { runQrScannerImg(res); });
+}
+
+function runQrScannerImg(res) {
+  var img = document.getElementById('cam-img');
+  res.textContent = 'Analyse (mode couleur)...';
+  QrScanner.scanImage(img, {returnDetailedScanResult: true})
+    .then(function(result) { onFound(result.data, res); })
+    .catch(function() {
+      var base = toCanvas(img, 600);
+      var sat = satExtract(base, 0.1, false);
+      QrScanner.scanImage(sat, {returnDetailedScanResult: true})
+        .then(function(r2) { onFound(r2.data, res); })
+        .catch(function() { onNotFound(res); });
+    });
 }
 
 // ─── PREPROCESSING QR ─────────────────────────────────────
