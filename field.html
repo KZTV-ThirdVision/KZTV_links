@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KZTV Field">
+<link rel="manifest" href="/manifest.json">
+<title>KZTV Field</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f0eaf8;overflow:hidden;}
+
+/* PIN SCREEN */
+#pin-screen{position:fixed;inset:0;background:#080412;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:100;padding:20px;}
+#pin-screen img{width:80px;opacity:.9;}
+#pin-screen h2{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,234,248,.4);}
+#pin-dots{display:flex;gap:12px;}
+.pdot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.2);background:transparent;transition:background .2s,border-color .2s;}
+.pdot.filled{background:#7b2fff;border-color:#7b2fff;}
+#pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;width:100%;}
+.pk{padding:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;font-size:20px;font-weight:600;cursor:pointer;text-align:center;transition:background .1s;}
+.pk:active{background:rgba(123,47,255,.25);}
+#pin-err{font-size:12px;color:#ff4d6d;opacity:0;transition:opacity .3s;}
+
+/* MAIN APP */
+#app{display:none;height:100%;flex-direction:column;}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;}
+.tab-btn{flex:1;padding:14px 8px;text-align:center;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.35);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+.tab-btn.active{color:#c94dff;border-bottom-color:#c94dff;}
+
+/* PANELS */
+.panel{display:none;flex:1;overflow-y:auto;padding:20px;}
+.panel.active{display:block;}
+
+/* SCANNER PANEL */
+.section-title{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:rgba(240,234,248,.35);font-weight:600;margin-bottom:14px;}
+
+#video-wrap{position:relative;width:100%;aspect-ratio:1;border-radius:16px;overflow:hidden;background:#000;margin-bottom:16px;}
+#qr-video{width:100%;height:100%;object-fit:cover;}
+.scan-frame{position:absolute;inset:20px;border:2px solid rgba(123,47,255,.6);border-radius:8px;}
+.scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#c94dff,transparent);animation:scan 2s ease-in-out infinite;top:0;}
+@keyframes scan{0%,100%{top:0;opacity:0;}10%,90%{opacity:1;}50%{top:calc(100% - 2px);}}
+.scan-corner{position:absolute;width:20px;height:20px;border-color:#7b2fff;border-style:solid;}
+.sc-tl{top:-1px;left:-1px;border-width:3px 0 0 3px;border-radius:4px 0 0 4px;}
+.sc-tr{top:-1px;right:-1px;border-width:3px 3px 0 0;border-radius:0 4px 0 0;}
+.sc-bl{bottom:-1px;left:-1px;border-width:0 0 3px 3px;border-radius:0 0 0 4px;}
+.sc-br{bottom:-1px;right:-1px;border-width:0 3px 3px 0;border-radius:0 0 4px 0;}
+
+#url-detected{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 14px;color:#f0eaf8;font-family:'Inter',sans-serif;font-size:13px;outline:none;margin-bottom:16px;}
+#url-detected:focus{border-color:#7b2fff;}
+#url-detected::placeholder{color:rgba(240,234,248,.25);}
+
+/* TAILLE — accordéon cm/mm */
+.size-section{margin-bottom:16px;}
+.size-toggle{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 16px;cursor:pointer;}
+.size-toggle .label{font-size:14px;font-weight:600;}
+.size-toggle .value{font-size:14px;color:#c94dff;font-weight:700;}
+.size-toggle .arrow{color:rgba(240,234,248,.3);font-size:18px;transition:transform .3s;}
+.size-toggle.open .arrow{transform:rotate(180deg);}
+.size-picker{max-height:0;overflow:hidden;transition:max-height .35s ease;}
+.size-picker.open{max-height:200px;}
+.picker-inner{padding:16px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-top:none;border-radius:0 0 10px 10px;display:flex;gap:12px;}
+.roller{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.roller label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.35);font-weight:600;}
+.roller-btns{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;}
+.rbtn{width:100%;padding:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:rgba(240,234,248,.5);font-size:16px;cursor:pointer;text-align:center;transition:background .1s;}
+.rbtn:active{background:rgba(123,47,255,.2);}
+.rval{font-size:28px;font-weight:700;color:#f0eaf8;padding:8px 0;}
+
+#size-result{background:rgba(123,47,255,.1);border:1px solid rgba(123,47,255,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:rgba(240,234,248,.7);display:none;}
+#size-result strong{color:#c94dff;}
+
+/* Optionnel : track/spot */
+.field{margin-bottom:12px;}
+.field label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.3);display:block;margin-bottom:6px;font-weight:600;}
+.field input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:11px 13px;color:#f0eaf8;font-family:'Inter',sans-serif;font-size:14px;outline:none;}
+.field input:focus{border-color:#7b2fff;}
+.field input::placeholder{color:rgba(240,234,248,.2);}
+
+/* BUTTONS */
+.cta{width:100%;padding:15px;background:linear-gradient(135deg,#7b2fff,#c94dff);border:none;border-radius:12px;color:#fff;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;transition:opacity .2s;}
+.cta:active{opacity:.8;}
+.cta.secondary{background:rgba(123,47,255,.12);border:1px solid rgba(123,47,255,.25);color:#c94dff;}
+.cta:disabled{opacity:.35;pointer-events:none;}
+
+/* URL générée */
+#gen-url-box{display:none;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px;margin-top:14px;}
+#gen-url-box .url-text{font-size:12px;color:#c94dff;word-break:break-all;margin-bottom:10px;font-family:'Inter',sans-serif;}
+.copy-btn{padding:9px 16px;background:rgba(123,47,255,.15);border:1px solid rgba(123,47,255,.3);border-radius:8px;color:#c94dff;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;}
+
+/* SPOTS PANEL */
+.spot-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;}
+.spot-img{width:52px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0;background:rgba(255,255,255,.06);}
+.spot-info{flex:1;}
+.spot-label{font-size:14px;font-weight:600;}
+.spot-url{font-size:11px;color:rgba(240,234,248,.35);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;}
+.spot-scans{font-size:11px;color:#c94dff;margin-top:3px;}
+.spot-toggle{flex-shrink:0;}
+.toggle{width:42px;height:24px;border-radius:12px;border:none;cursor:pointer;position:relative;transition:background .3s;}
+.toggle.on{background:#7b2fff;}
+.toggle.off{background:rgba(255,255,255,.1);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform .3s;}
+.toggle.on::after{transform:translateX(18px);}
+.empty{text-align:center;color:rgba(240,234,248,.25);font-size:13px;padding:40px 0;}
+
+/* CONFIG */
+.config-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px;margin-bottom:12px;}
+.config-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.3);font-weight:600;margin-bottom:8px;}
+.config-value{font-size:14px;color:#f0eaf8;}
+
+/* NOTIF */
+#notif{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(8,4,18,.95);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:10px 20px;font-size:13px;color:rgba(240,234,248,.7);z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+#notif.show{opacity:1;}
+#notif.ok{color:#1ed760;border-color:rgba(30,215,96,.3);}
+#notif.er{color:#ff4d6d;border-color:rgba(255,77,100,.3);}
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div id="pin-screen">
+  <img src="https://raw.githubusercontent.com/KZTV-ThirdVision/KZTV_links/main/logo.png" alt="KZTV">
+  <h2>KZTV Field</h2>
+  <div id="pin-dots">
+    <div class="pdot" id="d0"></div>
+    <div class="pdot" id="d1"></div>
+    <div class="pdot" id="d2"></div>
+    <div class="pdot" id="d3"></div>
+  </div>
+  <div id="pin-pad">
+    <div class="pk" onclick="pinKey('1')">1</div>
+    <div class="pk" onclick="pinKey('2')">2</div>
+    <div class="pk" onclick="pinKey('3')">3</div>
+    <div class="pk" onclick="pinKey('4')">4</div>
+    <div class="pk" onclick="pinKey('5')">5</div>
+    <div class="pk" onclick="pinKey('6')">6</div>
+    <div class="pk" onclick="pinKey('7')">7</div>
+    <div class="pk" onclick="pinKey('8')">8</div>
+    <div class="pk" onclick="pinKey('9')">9</div>
+    <div class="pk" onclick="pinKey('del')" style="font-size:16px;">⌫</div>
+    <div class="pk" onclick="pinKey('0')">0</div>
+    <div class="pk" style="opacity:.2;pointer-events:none;"></div>
+  </div>
+  <div id="pin-err">Code incorrect</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="tabs">
+    <div class="tab-btn active" onclick="switchTab('scanner')">Scanner</div>
+    <div class="tab-btn" onclick="switchTab('spots')">Spots</div>
+    <div class="tab-btn" onclick="switchTab('config')">Config</div>
+  </div>
+
+  <!-- SCANNER -->
+  <div class="panel active" id="panel-scanner">
+    <div class="section-title">Scanner un QR code</div>
+
+    <div id="video-wrap">
+      <video id="qr-video" autoplay playsinline muted></video>
+      <div class="scan-frame">
+        <div class="scan-line"></div>
+        <div class="scan-corner sc-tl"></div>
+        <div class="scan-corner sc-tr"></div>
+        <div class="scan-corner sc-bl"></div>
+        <div class="scan-corner sc-br"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>URL du QR code scanné</label>
+      <input type="url" id="url-detected" placeholder="https://... (ou coller manuellement)">
+    </div>
+
+    <!-- Taille en cm -->
+    <div class="size-section">
+      <div class="size-toggle" id="cm-toggle" onclick="togglePicker('cm')">
+        <span class="label">Centimètres</span>
+        <span class="value" id="cm-display">3 cm</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="size-picker" id="cm-picker">
+        <div class="picker-inner">
+          <div class="roller">
+            <div class="roller-btns">
+              <button class="rbtn" onclick="adjustVal('cm',1)">▲</button>
+              <div class="rval" id="cm-val">3</div>
+              <button class="rbtn" onclick="adjustVal('cm',-1)">▼</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Taille en mm -->
+    <div class="size-section">
+      <div class="size-toggle" id="mm-toggle" onclick="togglePicker('mm')">
+        <span class="label">Millimètres</span>
+        <span class="value" id="mm-display">0 mm</span>
+        <span class="arrow">▾</span>
+      </div>
+      <div class="size-picker" id="mm-picker">
+        <div class="picker-inner">
+          <div class="roller">
+            <div class="roller-btns">
+              <button class="rbtn" onclick="adjustVal('mm',1)">▲</button>
+              <div class="rval" id="mm-val">0</div>
+              <button class="rbtn" onclick="adjustVal('mm',-1)">▼</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Résultat taille avec marge -->
+    <div id="size-result">
+      Sticker à imprimer : <strong id="sticker-size">—</strong> (QR + 2mm marge)
+    </div>
+
+    <div class="field">
+      <label>Nom du spot (optionnel)</label>
+      <input type="text" id="spot-label" placeholder="Ex: Parking République">
+    </div>
+
+    <div class="field">
+      <label>Titre du son (optionnel)</label>
+      <input type="text" id="track-title" placeholder="Ex: KZTV — Tout Va Bien">
+    </div>
+
+    <button class="cta" id="gen-btn" onclick="generate()">Générer le lien + sauvegarder</button>
+
+    <div id="gen-url-box">
+      <div class="url-text" id="gen-url"></div>
+      <button class="copy-btn" onclick="copyGenUrl()">Copier le lien</button>
+    </div>
+  </div>
+
+  <!-- SPOTS -->
+  <div class="panel" id="panel-spots">
+    <div class="section-title">Spots actifs</div>
+    <div id="spots-list"><div class="empty">Chargement...</div></div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="panel" id="panel-config">
+    <div class="section-title">Configuration</div>
+    <div class="config-item">
+      <div class="config-label">URL de base</div>
+      <div class="config-value">kztv-links-dusky.vercel.app/q</div>
+    </div>
+    <div class="config-item">
+      <div class="config-label">PIN actuel</div>
+      <div class="config-value" id="pin-display">••••</div>
+    </div>
+    <div class="field" style="margin-top:16px;">
+      <label>Changer le PIN (4 chiffres)</label>
+      <input type="number" id="new-pin" placeholder="1234" maxlength="4">
+    </div>
+    <button class="cta secondary" onclick="changePin()">Mettre à jour le PIN</button>
+    <div class="config-item" style="margin-top:20px;">
+      <div class="config-label">Supabase</div>
+      <div class="config-value" style="font-size:12px;color:rgba(240,234,248,.4);">bkqdhndjmpwdtcelrdit</div>
+    </div>
+  </div>
+</div>
+
+<div id="notif"></div>
+
+<script>
+const SB_URL = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
+const BASE_URL = 'https://kztv-links-dusky.vercel.app/q';
+const PIN_KEY  = 'kztv_field_pin';
+const DEFAULT_PIN = '1234';
+
+let pinEntry = '';
+let cmVal = 3, mmVal = 0;
+let genUrl = '';
+let stream = null;
+let detector = null;
+let scanning = false;
+
+// ─── PIN ───────────────────────────────────────────────────
+function pinKey(k) {
+  if (k === 'del') { pinEntry = pinEntry.slice(0,-1); }
+  else if (pinEntry.length < 4) { pinEntry += k; }
+  updateDots();
+  if (pinEntry.length === 4) checkPin();
+}
+function updateDots() {
+  for (let i=0; i<4; i++) {
+    document.getElementById('d'+i).className = 'pdot' + (i < pinEntry.length ? ' filled' : '');
+  }
+}
+function checkPin() {
+  const stored = localStorage.getItem(PIN_KEY) || DEFAULT_PIN;
+  if (pinEntry === stored) {
+    document.getElementById('pin-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    startCamera();
+    loadSpots();
+  } else {
+    document.getElementById('pin-err').style.opacity = '1';
+    setTimeout(() => {
+      document.getElementById('pin-err').style.opacity = '0';
+      pinEntry = ''; updateDots();
+    }, 1200);
+    pinEntry = ''; updateDots();
+  }
+}
+function changePin() {
+  const v = document.getElementById('new-pin').value.trim();
+  if (!/^\d{4}$/.test(v)) { showNotif('PIN doit être 4 chiffres','er'); return; }
+  localStorage.setItem(PIN_KEY, v);
+  showNotif('PIN mis à jour ✓','ok');
+}
+
+// ─── TABS ──────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const tabs = ['scanner','spots','config'];
+    b.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+  if (tab === 'spots') loadSpots();
+}
+
+// ─── CAMERA ────────────────────────────────────────────────
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    document.getElementById('qr-video').srcObject = stream;
+    if ('BarcodeDetector' in window) {
+      detector = new BarcodeDetector({formats:['qr_code']});
+      scanning = true;
+      scanLoop();
+    }
+  } catch(e) {
+    document.getElementById('video-wrap').style.display = 'none';
+  }
+}
+async function scanLoop() {
+  if (!scanning || !detector) return;
+  const video = document.getElementById('qr-video');
+  try {
+    const codes = await detector.detect(video);
+    if (codes.length > 0) {
+      const url = codes[0].rawValue;
+      const inp = document.getElementById('url-detected');
+      if (inp.value !== url) {
+        inp.value = url;
+        showNotif('QR détecté ✓','ok');
+      }
+    }
+  } catch(e) {}
+  requestAnimationFrame(scanLoop);
+}
+
+// ─── TAILLE ────────────────────────────────────────────────
+function togglePicker(type) {
+  const tog = document.getElementById(type+'-toggle');
+  const pic = document.getElementById(type+'-picker');
+  const isOpen = pic.classList.contains('open');
+  // Fermer les deux d'abord
+  document.querySelectorAll('.size-picker').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.size-toggle').forEach(t => t.classList.remove('open'));
+  if (!isOpen) { pic.classList.add('open'); tog.classList.add('open'); }
+}
+function adjustVal(type, delta) {
+  if (type === 'cm') {
+    cmVal = Math.min(20, Math.max(1, cmVal + delta));
+    document.getElementById('cm-val').textContent = cmVal;
+    document.getElementById('cm-display').textContent = cmVal + ' cm';
+  } else {
+    mmVal = Math.min(9, Math.max(0, mmVal + delta));
+    document.getElementById('mm-val').textContent = mmVal;
+    document.getElementById('mm-display').textContent = mmVal + ' mm';
+  }
+  updateSizeResult();
+}
+function updateSizeResult() {
+  const totalMm = cmVal * 10 + mmVal;
+  const stickerMm = totalMm + 2; // +2mm marge
+  const stickerCm = (stickerMm / 10).toFixed(1);
+  document.getElementById('sticker-size').textContent = stickerCm + ' cm × ' + stickerCm + ' cm';
+  document.getElementById('size-result').style.display = 'block';
+}
+
+// ─── GENERATE ──────────────────────────────────────────────
+async function generate() {
+  const url = document.getElementById('url-detected').value.trim();
+  if (!url || !url.startsWith('http')) { showNotif('Entre une URL valide','er'); return; }
+
+  document.getElementById('gen-btn').disabled = true;
+  showNotif('Sauvegarde...');
+
+  const label = document.getElementById('spot-label').value.trim() || 'Spot sans nom';
+  const track = document.getElementById('track-title').value.trim() || '';
+  const totalMm = cmVal * 10 + mmVal;
+
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/spots`, {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json', 'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        label, real_url: url, active: true,
+        qr_size_cm: totalMm / 10,
+        track_title: track || null,
+        scans_count: 0
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Erreur Supabase');
+
+    const spot = data[0];
+    genUrl = `${BASE_URL}?site=${encodeURIComponent(url)}&id=${spot.id}`;
+    document.getElementById('gen-url').textContent = genUrl;
+    document.getElementById('gen-url-box').style.display = 'block';
+    updateSizeResult();
+    showNotif('Spot sauvegardé ✓','ok');
+  } catch(e) {
+    showNotif('Erreur: '+e.message,'er');
+  }
+  document.getElementById('gen-btn').disabled = false;
+}
+
+function copyGenUrl() {
+  navigator.clipboard.writeText(genUrl).then(() => showNotif('Copié ✓','ok')).catch(() => {
+    const t = document.createElement('textarea');
+    t.value = genUrl; document.body.appendChild(t); t.select();
+    document.execCommand('copy'); document.body.removeChild(t);
+    showNotif('Copié ✓','ok');
+  });
+}
+
+// ─── SPOTS ─────────────────────────────────────────────────
+async function loadSpots() {
+  const list = document.getElementById('spots-list');
+  list.innerHTML = '<div class="empty">Chargement...</div>';
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/spots?select=*&order=created_at.desc`, {
+      headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+    });
+    const data = await r.json();
+    if (!data.length) { list.innerHTML = '<div class="empty">Aucun spot enregistré</div>'; return; }
+    list.innerHTML = '';
+    data.forEach(spot => {
+      const card = document.createElement('div');
+      card.className = 'spot-card';
+      const domain = (() => { try { return new URL(spot.real_url).hostname; } catch(e) { return spot.real_url; } })();
+      card.innerHTML = `
+        <div style="width:52px;height:52px;border-radius:8px;background:rgba(123,47,255,.15);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">📍</div>
+        <div class="spot-info">
+          <div class="spot-label">${spot.label || 'Spot'}</div>
+          <div class="spot-url">${domain}</div>
+          <div class="spot-scans">${spot.scans_count || 0} scan${spot.scans_count !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="spot-toggle">
+          <button class="toggle ${spot.active ? 'on' : 'off'}" onclick="toggleSpot('${spot.id}', ${!spot.active}, this)"></button>
+        </div>`;
+      list.appendChild(card);
+    });
+  } catch(e) {
+    list.innerHTML = '<div class="empty">Erreur de chargement</div>';
+  }
+}
+
+async function toggleSpot(id, newActive, btn) {
+  btn.className = 'toggle ' + (newActive ? 'on' : 'off');
+  await fetch(`${SB_URL}/rest/v1/spots?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
+    body: JSON.stringify({active: newActive})
+  });
+  showNotif(newActive ? 'Spot activé ✓' : 'Spot désactivé','ok');
+}
+
+// ─── UTILS ─────────────────────────────────────────────────
+function showNotif(msg, type='') {
+  const n = document.getElementById('notif');
+  n.textContent = msg; n.className = 'notif show ' + type;
+  setTimeout(() => n.className = 'notif', 3000);
+}
+
+// Init size result
+updateSizeResult();
+</script>
+</body>
+</html>
