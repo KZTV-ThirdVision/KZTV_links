@@ -211,7 +211,7 @@ let cmV=3, mmV=0, genUrl='';
 
 // CHARGER LES RELEASES DANS LE SELECT
 function loadReleaseSelect() {
-  fetch('https://raw.githubusercontent.com/'+REPO+'/main/releases.json?v='+Date.now())
+  fetch('/releases.json?v='+Date.now())
     .then(function(r){ return r.json(); })
     .then(function(releases) {
       var sel = document.getElementById('sp-trk');
