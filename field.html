@@ -211,6 +211,11 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     <div class="fld"><label>Changer le PIN (4 chiffres)</label><input type="number" id="new-pin" placeholder="1234"></div>
     <button class="cta sec" onclick="savePin()">Enregistrer le PIN</button>
     <div class="ci" style="margin-top:16px"><div class="cl">Supabase</div><div class="cv" style="font-size:11px;color:rgba(240,234,248,.3)">bkqdhndjmpwdtcelrdit</div></div>
+    <div style="margin-top:20px;">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:8px;">Vidéos YouTube</div>
+      <div style="font-size:13px;color:rgba(240,234,248,.4);margin-bottom:12px;">Cache local sur cet iPhone. Rafraîchis quand tu sors une nouvelle vidéo.</div>
+      <button class="cta sec" onclick="refreshYouTubeVideos(this)">Rafraîchir les vidéos YouTube</button>
+    </div>
   </div>
 </div>
 
@@ -235,29 +240,37 @@ function setYtStatus(msg, ok) {
   if (el) { el.textContent = msg; el.style.color = ok ? '#1ed760' : '#ff4d6d'; }
 }
 function loadYouTubeVideos() {
-  setYtStatus('Chargement...', null);
-  // Appel via proxy Vercel /api/videos — même domaine, pas de restriction iOS
+  // Lire depuis localStorage (cache local iPhone)
+  var cached = localStorage.getItem('kztv_yt_videos');
+  if (cached) {
+    try {
+      ytVideos = JSON.parse(cached);
+      setYtStatus(ytVideos.length + ' vidéos ✓ — tape pour chercher', true);
+      return;
+    } catch(e) {}
+  }
+  setYtStatus('Aucune vidéo — rafraîchis dans Config', false);
+}
+
+function refreshYouTubeVideos(btn) {
+  if (btn) { btn.textContent = 'Chargement...'; btn.disabled = true; }
   var xhr = new XMLHttpRequest();
   xhr.open('GET', '/api/videos', true);
   xhr.onload = function() {
-    if (xhr.status !== 200) {
-      setYtStatus('Erreur HTTP ' + xhr.status, false);
-      return;
-    }
+    if (btn) { btn.textContent = 'Rafraîchir les vidéos YouTube'; btn.disabled = false; }
     var data;
-    try { data = JSON.parse(xhr.responseText); } catch(e) { setYtStatus('Erreur JSON', false); return; }
-    if (data.error) {
-      setYtStatus('Erreur: ' + data.error, false);
-      return;
-    }
-    if (!data.videos || data.videos.length === 0) {
-      setYtStatus('Aucune vidéo trouvée', false);
-      return;
-    }
+    try { data = JSON.parse(xhr.responseText); } catch(e) { notif('Erreur JSON', 'er'); return; }
+    if (data.error) { notif('Erreur API: ' + data.error, 'er'); return; }
+    if (!data.videos || !data.videos.length) { notif('Aucune vidéo trouvée', 'er'); return; }
     ytVideos = data.videos;
+    localStorage.setItem('kztv_yt_videos', JSON.stringify(ytVideos));
     setYtStatus(ytVideos.length + ' vidéos ✓ — tape pour chercher', true);
+    notif(ytVideos.length + ' vidéos sauvegardées ✓', 'ok');
   };
-  xhr.onerror = function() { setYtStatus('Erreur réseau', false); };
+  xhr.onerror = function() {
+    if (btn) { btn.textContent = 'Rafraîchir les vidéos YouTube'; btn.disabled = false; }
+    notif('Erreur réseau', 'er');
+  };
   xhr.send();
 }
 
