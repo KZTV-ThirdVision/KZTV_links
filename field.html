@@ -343,34 +343,52 @@ function dbg(msg) {
 async function startCamera() {
   dbg('Démarrage...');
   try {
+    // Contraintes avec autofocus continu pour iOS
     stream = await navigator.mediaDevices.getUserMedia({
-      video: {facingMode: {ideal:'environment'}},
+      video: {
+        facingMode: {ideal:'environment'},
+        width: {ideal: 1280},
+        height: {ideal: 720},
+        focusMode: {ideal: 'continuous'},
+        advanced: [{focusMode: 'continuous'}]
+      },
       audio: false
     });
-    dbg('Caméra OK');
+
+    // Appliquer autofocus via les tracks
+    const track = stream.getVideoTracks()[0];
+    if (track && track.applyConstraints) {
+      track.applyConstraints({advanced: [{focusMode: 'continuous'}]}).catch(() => {});
+    }
+
+    dbg('Caméra OK — tap pour focuser');
     const video = document.getElementById('qr-video');
     video.srcObject = stream;
     video.play().catch(e => dbg('play() err: '+e.message));
 
-    // Attendre que la vidéo soit prête — polling robuste
+    // Tap sur la vidéo = forcer le focus
+    document.getElementById('video-wrap').addEventListener('click', () => {
+      if (track && track.applyConstraints) {
+        track.applyConstraints({advanced: [{focusMode: 'single-shot'}]})
+          .then(() => { dbg('Focus forcé ✓'); setTimeout(() => dbg('Scan actif'), 800); })
+          .catch(() => dbg('Focus non supporté'));
+      }
+    });
+
     let attempts = 0;
     const waitReady = setInterval(() => {
       attempts++;
-      dbg('Attente vidéo... '+video.readyState+' ('+video.videoWidth+'x'+video.videoHeight+')');
       if (video.readyState >= 2 && video.videoWidth > 0) {
         clearInterval(waitReady);
-        dbg('Vidéo prête — scan actif');
+        dbg('Scan actif — tap pour focuser');
         scanning = true;
-        setInterval(scanFrame, 300);
+        setInterval(scanFrame, 250);
       }
-      if (attempts > 30) {
-        clearInterval(waitReady);
-        dbg('Timeout vidéo');
-      }
-    }, 200);
+      if (attempts > 40) { clearInterval(waitReady); dbg('Timeout vidéo'); }
+    }, 150);
   } catch(e) {
-    dbg('Erreur: '+e.message);
-    showNotif('Caméra: '+e.message,'er');
+    dbg('Err: '+e.message);
+    showNotif('Caméra: '+e.message, 'er');
   }
 }
 
@@ -378,28 +396,37 @@ function scanFrame() {
   if (!scanning) return;
   const video = document.getElementById('qr-video');
   if (!video.videoWidth) return;
+  if (typeof jsQR === 'undefined') { dbg('jsQR non chargé'); return; }
 
   const canvas = document.getElementById('scan-canvas');
   const ctx = canvas.getContext('2d');
-  const w = video.videoWidth;
-  const h = video.videoHeight;
-  canvas.width = w;
-  canvas.height = h;
-  ctx.drawImage(video, 0, 0, w, h);
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+
+  // Crop au centre (80% de la zone) pour couvrir le cadre violet
+  const cropSize = Math.min(vw, vh) * 0.85;
+  const cx = (vw - cropSize) / 2;
+  const cy = (vh - cropSize) / 2;
+  const out = 400; // taille fixe pour jsQR
+  canvas.width = out;
+  canvas.height = out;
+  ctx.drawImage(video, cx, cy, cropSize, cropSize, 0, 0, out, out);
 
   let imageData;
-  try { imageData = ctx.getImageData(0, 0, w, h); } catch(e) { dbg('getImageData err: '+e.message); return; }
+  try { imageData = ctx.getImageData(0, 0, out, out); }
+  catch(e) { dbg('canvas err: '+e.message); return; }
 
-  if (typeof jsQR === 'undefined') { dbg('jsQR non chargé'); return; }
-
-  const code = jsQR(imageData.data, w, h, {inversionAttempts: 'attemptBoth'});
+  const code = jsQR(imageData.data, out, out, {inversionAttempts: 'attemptBoth'});
   if (code && code.data) {
     const val = code.data;
     const inp = document.getElementById('url-detected');
     if (val !== inp.value) {
       inp.value = val;
-      dbg('QR: '+val.slice(0,40));
+      dbg('✓ ' + val.slice(0,50));
       showNotif('QR détecté ✓','ok');
+      // Flash le cadre
+      const frame = document.querySelector('.scan-frame');
+      if (frame) { frame.style.borderColor='#1ed760'; setTimeout(()=>{frame.style.borderColor='';},600); }
     }
   }
 }
