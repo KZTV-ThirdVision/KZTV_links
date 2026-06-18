@@ -163,6 +163,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
     <div id="video-wrap">
       <video id="qr-video" autoplay playsinline muted></video>
+      <canvas id="scan-canvas" style="display:none;"></canvas>
       <div class="scan-frame">
         <div class="scan-line"></div>
         <div class="scan-corner sc-tl"></div>
@@ -271,6 +272,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
 <div id="notif"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
 const SB_URL = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
@@ -334,32 +336,44 @@ function switchTab(tab) {
 // ─── CAMERA ────────────────────────────────────────────────
 async function startCamera() {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-    document.getElementById('qr-video').srcObject = stream;
-    if ('BarcodeDetector' in window) {
-      detector = new BarcodeDetector({formats:['qr_code']});
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}},
+      audio:false
+    });
+    const video = document.getElementById('qr-video');
+    video.srcObject = stream;
+    video.addEventListener('loadeddata', () => {
       scanning = true;
       scanLoop();
-    }
+    });
   } catch(e) {
     document.getElementById('video-wrap').style.display = 'none';
+    showNotif('Caméra indisponible','er');
   }
 }
-async function scanLoop() {
-  if (!scanning || !detector) return;
+
+function scanLoop() {
+  if (!scanning) return;
   const video = document.getElementById('qr-video');
-  try {
-    const codes = await detector.detect(video);
-    if (codes.length > 0) {
-      const url = codes[0].rawValue;
-      const inp = document.getElementById('url-detected');
-      if (inp.value !== url) {
-        inp.value = url;
-        showNotif('QR détecté ✓','ok');
-      }
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+    requestAnimationFrame(scanLoop); return;
+  }
+  const canvas = document.getElementById('scan-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, imageData.width, imageData.height, {inversionAttempts:'dontInvert'});
+  if (code) {
+    const url = code.data;
+    const inp = document.getElementById('url-detected');
+    if (url && url !== inp.value) {
+      inp.value = url;
+      showNotif('QR détecté ✓', 'ok');
     }
-  } catch(e) {}
-  requestAnimationFrame(scanLoop);
+  }
+  setTimeout(scanLoop, 200);
 }
 
 // ─── TAILLE ────────────────────────────────────────────────
