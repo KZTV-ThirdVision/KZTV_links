@@ -196,7 +196,9 @@ function filterEditYT(q) {
 }
 function selectEditYT(v) {
   document.getElementById('edit-yt-id').value=v.id;
-  document.getElementById('edit-yt-title-val').value=v.title;
+  // Pré-remplir seulement si vide
+  var tf = document.getElementById('edit-yt-title-val');
+  if (tf && !tf.value) tf.value = v.title;
   document.getElementById('edit-yt-thumb').src=v.thumb;
   document.getElementById('edit-yt-title').textContent=v.title;
   document.getElementById('edit-yt-selected').style.display='flex';
@@ -625,8 +627,11 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
           <div id="yt-status" style="font-size:12px;color:rgba(240,234,248,.35);padding:8px 4px;"><span id="yt-status-txt">—</span></div>
         </div>
       </div>
-      <input type="hidden" id="sp-trk" value="">
       <input type="hidden" id="sp-yt-id" value="">
+      <div class="fld" style="margin-top:10px;">
+        <label>Nom affiché dans la pub</label>
+        <input type="text" id="sp-trk" placeholder="Ex: KZTV — Nouvelle Ère" style="font-size:16px;">
+      </div>
     </div>
     <button class="cta" onclick="generate()">Générer + sauvegarder</button>
     <div id="urlbox">
@@ -838,7 +843,9 @@ function filterYT(q) {
 
 function selectYT(v) {
   ytSelected = v;
-  document.getElementById('sp-trk').value = v.title;
+  // Pré-remplir le nom affiché avec le titre YT (l'utilisateur peut le modifier)
+  var trkField = document.getElementById('sp-trk');
+  if (trkField && !trkField.value) trkField.value = v.title;
   document.getElementById('sp-yt-id').value = v.id;
   document.getElementById('yt-search').value = '';
   document.getElementById('yt-thumb').src = v.thumb;
