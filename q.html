@@ -58,18 +58,32 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#080412;overflow
 }
 /* Photo de fond en haut */
 .popup-hero{
-  width:100%;height:150px;position:relative;
-  background:url('https://raw.githubusercontent.com/KZTV-ThirdVision/KZTV_links/main/pp.jpg') center 20%/cover no-repeat;
+  width:100%;
+  height:280px;
+  position:relative;
+  background:url('https://raw.githubusercontent.com/KZTV-ThirdVision/KZTV_links/main/pp.jpg') center 25%/cover no-repeat;
+  flex-shrink:0;
 }
+/* Dégradé : transparent en haut, noir opaque à partir de 55% */
 .popup-hero::after{
   content:'';position:absolute;inset:0;
-  background:linear-gradient(to bottom, rgba(8,4,18,0) 30%, rgba(8,4,18,.95) 100%);
+  background:linear-gradient(to bottom,
+    rgba(8,4,18,0) 0%,
+    rgba(8,4,18,0) 40%,
+    rgba(8,4,18,.7) 65%,
+    rgba(8,4,18,.97) 100%
+  );
 }
+/* Logo positionné au niveau de la bouche (~65% de la hauteur du hero) */
 .popup-hero-logo{
-  position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);z-index:2;
+  position:absolute;
+  top:62%;
+  left:50%;transform:translateX(-50%);
+  z-index:2;
 }
 .popup-hero-logo img{height:90px;opacity:.95;}
-.popup-body{padding:40px 22px 32px;}
+/* Le texte commence juste sous la photo, qui disparaît dans le dégradé */
+.popup-body{padding:16px 22px 32px;}
 
 .badge{display:inline-block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,77,255,.8);background:rgba(123,47,255,.15);border:1px solid rgba(123,47,255,.3);border-radius:20px;padding:4px 10px;font-weight:600;margin-bottom:14px;}
 .headline{font-size:19px;font-weight:700;color:#f0eaf8;line-height:1.3;margin-bottom:8px;}
