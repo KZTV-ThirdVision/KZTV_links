@@ -380,16 +380,22 @@ function shareQR() {
   if (!cvs) { notif('QR non pret - attends 1s', 'er'); return; }
   var fname = 'kztv-qr-' + ((_qrSpotData && _qrSpotData.label)||'spot').replace(/[^a-z0-9]/gi,'-').toLowerCase() + '.png';
   try {
-    cvs.toBlob(function(blob) {
-      var file = new File([blob], fname, {type:'image/png'});
-      if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
-        navigator.share({files:[file], title:'QR Code KZTV'}).catch(function(){});
-      } else {
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = fname; a.click();
-      }
-    }, 'image/png');
+    // Injecter les métadonnées DPI (300 DPI) dans le PNG avant export
+    var rawUrl = cvs.toDataURL('image/png');
+    var dpiUrl = injectDPI(rawUrl, 300);
+    var b64 = dpiUrl.split(',')[1];
+    var bin = atob(b64);
+    var arr = new Uint8Array(bin.length);
+    for (var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+    var blob = new Blob([arr], {type:'image/png'});
+    var file = new File([blob], fname, {type:'image/png'});
+    if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
+      navigator.share({files:[file], title:'QR Code KZTV - '+fname}).catch(function(){});
+    } else {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fname; a.click();
+    }
   } catch(e) {
     var a = document.createElement('a');
     a.href = cvs.toDataURL('image/png');
@@ -420,6 +426,52 @@ function startQRCountdown(spotData) {
       cd.style.display = 'none';
     }
   }, 1000);
+}
+
+
+// ─── PNG DPI METADATA ──────────────────────────────────────
+function crc32(buf) {
+  var t = [], c;
+  for (var n=0;n<256;n++){c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c;}
+  var crc=0xFFFFFFFF;
+  for(var i=0;i<buf.length;i++) crc=t[(crc^buf[i])&0xFF]^(crc>>>8);
+  return (crc^0xFFFFFFFF)>>>0;
+}
+
+function injectDPI(dataUrl, dpi) {
+  // Convertir dataURL → Uint8Array
+  var b64 = dataUrl.split(',')[1];
+  var bin = atob(b64);
+  var src = new Uint8Array(bin.length);
+  for (var i=0;i<bin.length;i++) src[i]=bin.charCodeAt(i);
+
+  // Construire le chunk pHYs (pixels per meter)
+  var ppm = Math.round(dpi / 0.0254); // 300dpi → 11811 pixels/m
+  var phys = new Uint8Array(21);
+  // Longueur du data : 9
+  phys[0]=0;phys[1]=0;phys[2]=0;phys[3]=9;
+  // Type : pHYs
+  phys[4]=0x70;phys[5]=0x48;phys[6]=0x59;phys[7]=0x73;
+  // X ppm (big-endian uint32)
+  phys[8]=(ppm>>24)&0xFF;phys[9]=(ppm>>16)&0xFF;phys[10]=(ppm>>8)&0xFF;phys[11]=ppm&0xFF;
+  // Y ppm
+  phys[12]=(ppm>>24)&0xFF;phys[13]=(ppm>>16)&0xFF;phys[14]=(ppm>>8)&0xFF;phys[15]=ppm&0xFF;
+  // Unit = 1 (meter)
+  phys[16]=1;
+  // CRC32 sur type+data (octets 4 à 16)
+  var c = crc32(phys.slice(4,17));
+  phys[17]=(c>>24)&0xFF;phys[18]=(c>>16)&0xFF;phys[19]=(c>>8)&0xFF;phys[20]=c&0xFF;
+
+  // Insérer pHYs après IHDR (pos 33 = 8 sig + 4+4+13+4 IHDR)
+  var out = new Uint8Array(src.length + 21);
+  out.set(src.slice(0, 33));
+  out.set(phys, 33);
+  out.set(src.slice(33), 54);
+
+  // Reconvertir en dataURL
+  var s = '';
+  for (var i=0;i<out.length;i++) s+=String.fromCharCode(out[i]);
+  return 'data:image/png;base64,' + btoa(s);
 }
 
 </script>
