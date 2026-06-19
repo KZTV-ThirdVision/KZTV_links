@@ -518,11 +518,14 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
   <div class="panel on" id="p-scanner">
     <div class="stitle">Nouveau spot</div>
 
-    <div style="background:rgba(123,47,255,.1);border:1px solid rgba(123,47,255,.25);border-radius:14px;padding:18px;margin-bottom:16px;">
-      <div style="font-size:13px;color:rgba(240,234,248,.55);margin-bottom:14px;line-height:1.6;">
-        Scanne le QR avec la <strong style="color:#f0eaf8">Caméra iOS</strong> → le site s'ouvre dans Safari → copie l'URL depuis la barre d'adresse → colle ici.
-      </div>
-      <button class="cta" onclick="pasteFromClipboard()" style="margin-top:0;">📋 Coller l'URL depuis le presse-papiers</button>
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <button class="cta sec" onclick="pasteFromClipboard()" style="flex:1;padding:13px 8px;font-size:13px;">📋 Coller l'URL</button>
+      <button class="cta sec" onclick="document.getElementById('new-photo-in').click()" style="flex:1;padding:13px 8px;font-size:13px;" id="new-photo-btn">📍 Photo du spot</button>
+    </div>
+    <input type="file" id="new-photo-in" accept="image/*" capture="environment" style="display:none" onchange="newSpotPhotoChanged(this)">
+    <div id="new-photo-preview" style="display:none;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin-bottom:12px;position:relative;">
+      <img id="new-photo-img" style="width:100%;height:100%;object-fit:cover;">
+      <button onclick="clearNewPhoto()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;">✕</button>
     </div>
 
     <div class="fld"><label>URL du QR code</label><input type="url" id="url-in" placeholder="https://..."></div>
@@ -865,6 +868,38 @@ function adj(t,d) {
   document.getElementById('sz-out').textContent=total.toFixed(1)+' cm × '+total.toFixed(1)+' cm';
 }
 
+// PHOTO NOUVEAU SPOT
+var _newSpotPhoto = null;
+function newSpotPhotoChanged(inp) {
+  var file=inp.files[0]; if(!file)return; inp.value='';
+  var fr=new FileReader();
+  fr.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var c=document.createElement('canvas');
+      var max=800; var w=img.width,h=img.height;
+      if(w>max){h=Math.round(h*max/w);w=max;}
+      c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      _newSpotPhoto=c.toDataURL('image/jpeg',0.75);
+      document.getElementById('new-photo-img').src=_newSpotPhoto;
+      document.getElementById('new-photo-preview').style.display='block';
+      document.getElementById('new-photo-btn').style.background='rgba(30,215,96,.1)';
+      document.getElementById('new-photo-btn').style.borderColor='rgba(30,215,96,.3)';
+      document.getElementById('new-photo-btn').style.color='#1ed760';
+    };
+    img.src=e.target.result;
+  };
+  fr.readAsDataURL(file);
+}
+function clearNewPhoto() {
+  _newSpotPhoto=null;
+  document.getElementById('new-photo-preview').style.display='none';
+  document.getElementById('new-photo-btn').style.background='';
+  document.getElementById('new-photo-btn').style.borderColor='';
+  document.getElementById('new-photo-btn').style.color='';
+}
+
 // PRESSE-PAPIERS
 async function pasteFromClipboard() {
   try {
@@ -893,7 +928,7 @@ async function generate() {
   var trkTitle = document.getElementById('sp-trk').value || null;
   var ytId = document.getElementById('sp-yt-id').value || null;
   try{
-    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',start_time:parseInt(document.getElementById('sp-delay').value)||0,scans_count:0})});
+    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',start_time:parseInt(document.getElementById('sp-delay').value)||0,scans_count:0,photo_data:_newSpotPhoto||null})});
     var d=await r.json();
     if(!r.ok)throw new Error(d.message||'err');
     genUrl=BASE+'?site='+encodeURIComponent(url)+'&id='+d[0].id;
@@ -901,6 +936,7 @@ async function generate() {
     document.getElementById('urlbox').style.display='block';
     notif('Sauvegardé ✓','ok');
     if(d[0]) startQRCountdown(d[0]);
+    clearNewPhoto(); document.getElementById('url-in').value='';
   }catch(e){notif('Erreur: '+e.message,'er');}
 }
 function copyUrl(){navigator.clipboard.writeText(genUrl).then(()=>notif('Copié ✓','ok')).catch(()=>notif('Erreur copie','er'));}
@@ -914,14 +950,34 @@ async function loadSpots(){
     if(!d.length){l.innerHTML='<div class="empty">Aucun spot</div>';return;}
     l.innerHTML='';
     d.forEach(function(s){
-      var dom='';try{dom=new URL(s.real_url).hostname;}catch(e){dom=s.real_url;}
-      var c=document.createElement('div');c.className='spot';c.style.cssText='cursor:pointer;';
-      var photoHtml=s.photo_data?'<img src="'+s.photo_data+'" style="width:52px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0;">'
-        :'<div style="width:52px;height:52px;border-radius:8px;background:rgba(123,47,255,.15);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;">📍</div>';
+      var dom='';try{dom=new URL(s.real_url).hostname;}catch(e){dom=s.real_url||'';}
       var spotLink='https://kztv-links-dusky.vercel.app/q?site='+encodeURIComponent(s.real_url||'')+'&id='+s.id;
-      c.innerHTML=photoHtml+'<div class="si"><div class="sl">'+(s.label||'Spot')+'</div><div class="su">'+dom+'</div><div class="ss">'+(s.scans_count||0)+' scan(s) · '+(s.track_title||'aucun son')+'</div>'
-        +'<button onclick="event.stopPropagation();copySpotLink(''+spotLink+'')" style="margin-top:6px;background:rgba(123,47,255,.12);border:1px solid rgba(123,47,255,.25);border-radius:6px;padding:5px 10px;color:#c94dff;font-size:11px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;">🔗 Copier le lien</button>'
-        +'</div><button class="tog '+(s.active?'on':'off')+'" data-id="'+s.id+'" data-active="'+s.active+'" onclick="event.stopPropagation();togSpot(this)"></button>';
+      var c=document.createElement('div');
+      c.className='spot'; c.style.cssText='cursor:pointer;';
+
+      var ph=document.createElement('div');
+      ph.style.cssText='width:52px;height:52px;border-radius:8px;flex-shrink:0;overflow:hidden;background:rgba(123,47,255,.15);display:flex;align-items:center;justify-content:center;font-size:24px;';
+      if(s.photo_data){var pi=document.createElement('img');pi.src=s.photo_data;pi.style.cssText='width:100%;height:100%;object-fit:cover;';ph.innerHTML='';ph.appendChild(pi);}
+      else{ph.textContent='📍';}
+
+      var info=document.createElement('div');info.className='si';
+      info.innerHTML='<div class="sl">'+(s.label||'Spot')+'</div>'
+        +'<div class="su">'+dom+'</div>'
+        +'<div class="ss">'+(s.scans_count||0)+' scan(s) · '+(s.track_title||'aucun son')+'</div>';
+
+      var cpBtn=document.createElement('button');
+      cpBtn.textContent='🔗 Copier le lien';
+      cpBtn.style.cssText='margin-top:6px;background:rgba(123,47,255,.12);border:1px solid rgba(123,47,255,.25);border-radius:6px;padding:5px 10px;color:#c94dff;font-size:11px;font-weight:600;font-family:Inter,sans-serif;cursor:pointer;display:block;';
+      cpBtn.onclick=function(e){e.stopPropagation();copySpotLink(spotLink);};
+      info.appendChild(cpBtn);
+
+      var tog=document.createElement('button');
+      tog.className='tog '+(s.active?'on':'off');
+      tog.setAttribute('data-id',s.id);
+      tog.setAttribute('data-active',s.active);
+      tog.onclick=function(e){e.stopPropagation();togSpot(this);};
+
+      c.appendChild(ph); c.appendChild(info); c.appendChild(tog);
       c.addEventListener('click',function(){openEdit(s);});
       l.appendChild(c);
     });
