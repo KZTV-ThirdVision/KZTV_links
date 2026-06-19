@@ -29,10 +29,7 @@ function tab(t) {
   if (t==='config' && typeof loadConfTsub === 'function') { loadConfTsub(); loadConfDomain(); }
   if (t==='scanner') {
     if (typeof loadYouTubeVideos === 'function' && typeof ytVideos !== 'undefined' && ytVideos.length===0) loadYouTubeVideos();
-    // Toujours sync sp-tsub depuis localStorage quand on arrive sur scanner
-    var _ts = localStorage.getItem('kztv_tsub')||'';
-    var _tsEl = document.getElementById('sp-tsub');
-    if (_tsEl && _ts && !_tsEl._userEdited) _tsEl.value = _ts;
+    if (typeof loadConfTsub === 'function') loadConfTsub();
   }
 }
 
@@ -1317,6 +1314,8 @@ function resetScannerForm() {
   if (panel) panel.scrollTop = 0;
   _newSpotPhoto = null;
   _qrSpotData = null;
+  // Sync sous-titre depuis config
+  loadConfTsub();
 }
 
 // PRESSE-PAPIERS
@@ -1470,10 +1469,10 @@ function loadConfDomain(){
 function loadConfTsub(){
   var v=localStorage.getItem('kztv_tsub')||'';
   var el=document.getElementById('conf-tsub');
-  if(el && v) el.value=v;
-  // Pré-remplir aussi le champ sous-titre du formulaire Scanner
+  if(el) el.value=v;
+  // Toujours mettre à jour sp-tsub depuis localStorage
   var sp=document.getElementById('sp-tsub');
-  if(sp && v && !sp.value) sp.value=v;
+  if(sp) sp.value=v;
 }
 
 // NOTIF
