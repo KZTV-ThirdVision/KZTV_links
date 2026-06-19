@@ -363,10 +363,12 @@ async function runDebug() {
 
 // ─── NOTIFICATIONS NTFY ────────────────────────────────────
 function notifyKZTV(title, msg, priority) {
+  // keepalive:true = survit à la navigation (ex: défense totale + redirect immédiat)
   fetch('/api/notify', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({title: title, body: msg})
+    body: JSON.stringify({title: title, body: msg}),
+    keepalive: true
   }).catch(function(){});
 }
 
