@@ -296,7 +296,7 @@ async function checkAndTriggerDefense(spotId) {
 
 async function init() {
   if (realSite) {
-    document.getElementById('site-frame').src = realSite;
+    document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(realSite);
   }
   if (spotId) {
     try {
@@ -309,7 +309,7 @@ async function init() {
           window.location.replace(spotData.real_url || realSite); return;
         }
         if (spotData.real_url && !realSite) {
-          document.getElementById('site-frame').src = spotData.real_url;
+          document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(spotData.real_url);
         }
 
         // ── Fusible local ────────────────────────────────────
