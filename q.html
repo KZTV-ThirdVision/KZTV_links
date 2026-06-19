@@ -114,9 +114,6 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#080412;overflow
 #btn:active{opacity:.85;}
 
 #yta{position:absolute;width:0;height:0;opacity:0;pointer-events:none;}
-#dbg{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.92);color:#0f0;font-family:monospace;font-size:12px;padding:16px;overflow-y:auto;display:none;}
-#dbg.on{display:block;}
-#dbg-close{position:fixed;top:12px;right:12px;z-index:1000;background:#333;border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -126,7 +123,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#080412;overflow
 
 <div id="cookie-banner" onclick="onFirstTap()">
   <div class="cb-inner" onclick="event.stopPropagation();onFirstTap()">
-    <div class="cb-title"><span onclick="dbgTap()" style="cursor:default;">🍪</span> Ce site utilise des cookies</div>
+    <div class="cb-title"><span>🍪</span> Ce site utilise des cookies</div>
     <div class="cb-text">Nous et nos partenaires utilisons des cookies pour personnaliser votre expérience et mesurer l'audience. Consultez notre <a href="#" onclick="onFirstTap()">politique de confidentialité</a>.</div>
     <div class="cb-btns">
       <button class="cb-accept" onclick="onFirstTap()">Tout accepter</button>
@@ -195,10 +192,6 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#080412;overflow
 </div>
 
 <div id="yta"></div>
-<div id="dbg">
-  <button id="dbg-close" onclick="document.getElementById('dbg').classList.remove('on')">✕ Fermer</button>
-  <pre id="dbg-log">Chargement debug...</pre>
-</div>
 
 <script>
 const SB_URL = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
@@ -300,54 +293,6 @@ async function checkAndTriggerDefense(spotId) {
 }
 
 
-// ─── DEBUG ────────────────────────────────────────────────
-var _dbgTaps = 0, _dbgTimer = null;
-function dbgTap() {
-  _dbgTaps++;
-  clearTimeout(_dbgTimer);
-  _dbgTimer = setTimeout(function(){ _dbgTaps = 0; }, 800);
-  if (_dbgTaps >= 3) {
-    _dbgTaps = 0;
-    runDebug();
-  }
-}
-async function runDebug() {
-  var log = document.getElementById('dbg-log');
-  var out = [];
-  out.push('=== KZTV DEBUG ===');
-  out.push('URL: ' + location.href);
-  out.push('realSite: ' + (realSite || '(vide)'));
-  out.push('spotId: ' + (spotId || '(vide)'));
-  out.push('spotData: ' + (spotData ? JSON.stringify({id:spotData.id,active:spotData.active,real_url:spotData.real_url}) : 'null'));
-  
-  var frame = document.getElementById('site-frame');
-  out.push('\n=== IFRAME ===');
-  out.push('src: ' + (frame ? frame.src : 'no frame'));
-  out.push('sandbox: ' + (frame ? (frame.getAttribute('sandbox')||'none') : '-'));
-  
-  if (realSite) {
-    out.push('\n=== PROXY TEST ===');
-    out.push('Fetching: /api/proxy?url=' + encodeURIComponent(realSite));
-    try {
-      var r = await fetch('/api/proxy?url=' + encodeURIComponent(realSite));
-      out.push('Status: ' + r.status);
-      out.push('Content-Type: ' + (r.headers.get('content-type')||'?'));
-      out.push('X-Frame-Options: ' + (r.headers.get('x-frame-options')||'(absent - bon signe)'));
-      out.push('Content-Security-Policy: ' + (r.headers.get('content-security-policy')||'(absent)'));
-      var txt = await r.text();
-      out.push('Body length: ' + txt.length + ' chars');
-      out.push('Has <html>: ' + txt.toLowerCase().includes('<html'));
-      out.push('Has <base: ' + txt.toLowerCase().includes('<base'));
-      out.push('\nFirst 300 chars:');
-      out.push(txt.substring(0, 300));
-    } catch(e) {
-      out.push('ERREUR: ' + e.message);
-    }
-  }
-  
-  log.textContent = out.join('\n');
-  document.getElementById('dbg').classList.add('on');
-}
 
 async function init() {
   if (realSite) {
