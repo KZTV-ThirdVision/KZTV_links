@@ -656,14 +656,14 @@ async function toggleGodMode() {
   if (btn) btn.className = 'tog ' + (newState ? 'on' : 'off');
   notif(newState ? '⚡ Mode Dieu ON — fusibles désactivés partout' : 'Mode Dieu OFF — fusibles actifs', 'ok');
   // Notif ntfy
-  fetch('https://ntfy.sh/kztv-alerte-sentinelle-defense-total-protection-x100-active', {
+  fetch('/api/notify', {
     method: 'POST',
-    headers: {
-      'Title': newState ? '⚡ Mode Dieu ON' : '✅ Mode Dieu OFF',
-      'Priority': 'low',
-      'Tags': 'kztv'
-    },
-    body: newState ? 'Mode Dieu activé — fusibles désactivés sur tous les spots' : 'Mode Dieu désactivé — fusibles actifs, système de protection opérationnel'
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      title: newState ? '⚡ Mode Dieu ON' : '✅ Mode Dieu OFF',
+      body: newState ? 'Mode Dieu activé — fusibles désactivés sur tous les spots' : 'Mode Dieu désactivé — fusibles actifs, système de protection opérationnel',
+      priority: 'low'
+    })
   }).catch(function(){});
 }
 async function loadGodMode() {
