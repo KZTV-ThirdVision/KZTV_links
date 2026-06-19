@@ -363,11 +363,11 @@ async function runDebug() {
 
 // ─── NOTIFICATIONS NTFY ────────────────────────────────────
 function notifyKZTV(title, msg, priority) {
-  var url = 'https://ntfy.sh/kztv-alerte-sentinelle-defense-total-protection-x100-active'
-    + '?title=' + encodeURIComponent(title)
-    + '&priority=' + encodeURIComponent(priority || 'default')
-    + '&tags=kztv';
-  fetch(url, {method:'POST', body: msg}).catch(function(){});
+  fetch('/api/notify', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({title: title, body: msg})
+  }).catch(function(){});
 }
 
 async function init() {
