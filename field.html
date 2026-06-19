@@ -540,6 +540,71 @@ function downloadPDF() {
   });
 }
 
+
+// ─── ALERTES & DÉFENSE ──────────────────────────────────────
+var _alertSpot = null;
+
+function openAlerts(spot) {
+  _alertSpot = spot;
+  document.getElementById('alert-sheet-title').textContent = 'Alertes — ' + (spot.label || 'Spot');
+  var now = new Date();
+
+  // Statut défense
+  var defEl = document.getElementById('alert-defense-status');
+  var defUntilEl = document.getElementById('alert-defense-until');
+  if (spot.defense_mode && spot.defense_until && new Date(spot.defense_until) > now) {
+    var until = new Date(spot.defense_until);
+    defEl.style.display = 'block';
+    defUntilEl.textContent = 'Actif jusqu\'à ' + until.toLocaleString('fr-FR') + ' (' + Math.round((until-now)/60000) + ' min restantes)';
+  } else {
+    defEl.style.display = 'none';
+  }
+
+  // Statut sentinelle
+  var senEl = document.getElementById('alert-sentinelle-status');
+  var senUntilEl = document.getElementById('alert-sentinelle-until');
+  if (spot.sentinelle_until && new Date(spot.sentinelle_until) > now) {
+    var sUntil = new Date(spot.sentinelle_until);
+    senEl.style.display = 'block';
+    senUntilEl.textContent = '👁️ Mode sentinelle actif jusqu\'à ' + sUntil.toLocaleString('fr-FR');
+  } else {
+    senEl.style.display = 'none';
+  }
+
+  // Liste des alertes
+  var list = document.getElementById('alert-list');
+  var alerts = spot.alerts || [];
+  if (!alerts.length) {
+    list.innerHTML = '<div style="color:rgba(240,234,248,.3);font-size:13px;">Aucune alerte enregistrée</div>';
+  } else {
+    list.innerHTML = alerts.slice().reverse().map(function(a) {
+      var cls = a.type === 'defense' ? 'defense' : 'sentinelle';
+      var date = new Date(a.ts).toLocaleString('fr-FR');
+      return '<div class="alert-item '+cls+'"><div class="at">'+date+' — '+a.type.toUpperCase()+'</div><div class="am">'+a.msg+'<br><span style="color:rgba(240,234,248,.35);font-size:11px;">'+a.ua+'</span></div></div>';
+    }).join('');
+  }
+
+  document.getElementById('alert-overlay').classList.add('on');
+  document.getElementById('alert-sheet').classList.add('open');
+}
+
+function closeAlerts() {
+  document.getElementById('alert-overlay').classList.remove('on');
+  document.getElementById('alert-sheet').classList.remove('open');
+}
+
+async function disableDefense() {
+  if (!_alertSpot) return;
+  await fetch(SB+'/rest/v1/spots?id=eq.'+_alertSpot.id, {
+    method:'PATCH',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({defense_mode:false, defense_until:null})
+  });
+  notif('Mode défense désactivé ✓','ok');
+  closeAlerts();
+  loadSpots();
+}
+
 </script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -630,6 +695,21 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 #qr-sheet.open{transform:translateY(0);}
 #qr-canvas-wrap{background:#fff;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:center;margin:16px 0;overflow:hidden;width:220px;height:220px;margin-left:auto;margin-right:auto;}
 #qr-canvas-wrap canvas{display:block;}
+
+/* ALERTES */
+.shield-badge{font-size:16px;cursor:pointer;padding:2px 4px;border-radius:6px;background:rgba(255,77,100,.12);border:1px solid rgba(255,77,100,.3);line-height:1;}
+.shield-badge.sentinelle{background:rgba(255,165,0,.12);border-color:rgba(255,165,0,.3);}
+.shield-badge.defense{background:rgba(255,77,100,.2);border-color:rgba(255,77,100,.5);animation:pulse .8s ease-in-out infinite alternate;}
+@keyframes pulse{from{opacity:.6}to{opacity:1}}
+#alert-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;}
+#alert-overlay.on{opacity:1;pointer-events:all;}
+#alert-sheet{position:fixed;bottom:0;left:0;right:0;max-height:75vh;background:#0d0820;border-radius:20px 20px 0 0;border:1px solid rgba(255,255,255,.08);z-index:201;transform:translateY(100%);transition:transform .4s cubic-bezier(.16,1,.3,1);overflow-y:auto;padding:20px 20px calc(32px + env(safe-area-inset-bottom));}
+#alert-sheet.open{transform:translateY(0);}
+.alert-item{background:rgba(255,255,255,.04);border-radius:10px;padding:12px;margin-bottom:8px;font-size:12px;}
+.alert-item .at{color:rgba(240,234,248,.4);font-size:11px;margin-bottom:4px;}
+.alert-item .am{color:#f0eaf8;line-height:1.5;}
+.alert-item.defense .am{color:#ff4d6d;}
+.alert-item.sentinelle .am{color:#ffa500;}
 
 #notif{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(8,4,18,.95);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:10px 20px;font-size:13px;color:rgba(240,234,248,.6);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 #notif.show{opacity:1;}.notif-ok{color:#1ed760!important;border-color:rgba(30,215,96,.3)!important;}.notif-er{color:#ff4d6d!important;border-color:rgba(255,77,100,.3)!important;}
@@ -832,6 +912,25 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     </div>
     <div style="font-size:11px;color:rgba(240,234,248,.3);text-align:center;margin-top:8px;">Le PDF s'imprime à la bonne taille physique</div>
   </div>
+</div>
+
+<!-- ALERTES MODAL -->
+<div id="alert-overlay" onclick="closeAlerts()"></div>
+<div id="alert-sheet">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div style="font-size:15px;font-weight:700;color:#f0eaf8;" id="alert-sheet-title">Alertes du spot</div>
+    <button onclick="closeAlerts()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:rgba(240,234,248,.6);font-size:18px;cursor:pointer;">✕</button>
+  </div>
+  <div id="alert-defense-status" style="display:none;background:rgba(255,77,100,.1);border:1px solid rgba(255,77,100,.3);border-radius:12px;padding:14px;margin-bottom:14px;">
+    <div style="font-size:13px;font-weight:700;color:#ff4d6d;margin-bottom:6px;">🛡️ MODE DÉFENSE TOTALE ACTIF</div>
+    <div style="font-size:12px;color:rgba(240,234,248,.6);" id="alert-defense-until"></div>
+    <button onclick="disableDefense()" class="cta" style="margin-top:10px;background:rgba(255,77,100,.2);border:1px solid rgba(255,77,100,.4);font-size:13px;padding:10px;">Désactiver le mode défense</button>
+  </div>
+  <div id="alert-sentinelle-status" style="display:none;background:rgba(255,165,0,.08);border:1px solid rgba(255,165,0,.2);border-radius:12px;padding:12px;margin-bottom:14px;">
+    <div style="font-size:12px;color:#ffa500;" id="alert-sentinelle-until"></div>
+  </div>
+  <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);margin-bottom:10px;font-weight:600;">Historique des alertes</div>
+  <div id="alert-list"><div style="color:rgba(240,234,248,.3);font-size:13px;">Aucune alerte</div></div>
 </div>
 
 <!-- EDIT SPOT MODAL -->
@@ -1243,6 +1342,18 @@ async function loadSpots(){
         togSpot(this);
       };
 
+      // Badge alerte si alertes présentes
+      var hasAlerts = s.alerts && s.alerts.length > 0;
+      var isDefense = s.defense_mode && s.defense_until && new Date(s.defense_until) > new Date();
+      var isSentinelle = s.sentinelle_until && new Date(s.sentinelle_until) > new Date();
+      if (hasAlerts || isDefense || isSentinelle) {
+        var badge = document.createElement('span');
+        badge.className = 'shield-badge' + (isDefense ? ' defense' : isSentinelle ? ' sentinelle' : '');
+        badge.textContent = '🛡️';
+        badge.title = isDefense ? 'Mode Défense actif' : isSentinelle ? 'Mode Sentinelle actif' : 'Alertes';
+        badge.onclick = function(e) { e.stopPropagation(); openAlerts(s); };
+        right.appendChild(badge);
+      }
       right.appendChild(scanEl);
       right.appendChild(tog);
       c.appendChild(ph); c.appendChild(info); c.appendChild(right);
