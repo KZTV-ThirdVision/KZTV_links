@@ -315,11 +315,16 @@ async function init() {
         var inSentinelle = sentUntil && sentUntil > new Date();
         var inDefense = spotData.defense_mode && spotData.defense_until && new Date(spotData.defense_until) > new Date();
 
-        // Si Supabase est propre → effacer uniquement le blocage définitif
-        // NE PAS vider kztv_fuse_ (compteur de scans) — il doit s'accumuler
+        // Si Supabase est propre
         if (!inSentinelle && !inDefense) {
+          var wasBlocked = localStorage.getItem('kztv_blocked_' + spotId) === 'true';
           localStorage.removeItem('kztv_blocked_' + spotId);
           localStorage.removeItem('kztv_sent_scan_' + spotId);
+          // Si l'appareil était bloqué ET Supabase est propre = reset admin
+          // → vider aussi le compteur pour repartir proprement
+          if (wasBlocked) {
+            localStorage.removeItem('kztv_fuse_' + spotId);
+          }
         }
 
         // Mode Dieu actif → bypass complet du fusible (tests admin)
