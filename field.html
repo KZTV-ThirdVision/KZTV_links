@@ -572,13 +572,23 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     </div>
 
     <div class="fld"><label>URL du QR code</label><input type="url" id="url-in" placeholder="https://..."></div>
-    <div class="szsec">
-      <div class="sztog" id="cm-tog" onclick="togSz('cm')"><span class="lbl">Centimètres</span><span class="val" id="cm-v">3 cm</span><span class="arr">▾</span></div>
-      <div class="szpick" id="cm-pick"><div class="szinner"><button class="rbtn" onclick="adj('cm',-1)">−</button><div class="rnum" id="cm-n">3</div><button class="rbtn" onclick="adj('cm',1)">+</button></div></div>
+    <!-- CM + MM côte à côte, accordéon partagé -->
+    <div style="display:flex;gap:8px;margin-bottom:4px;">
+      <button id="cm-tog" onclick="togSz('cm')" style="flex:1;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 16px;font-family:'Inter',sans-serif;-webkit-appearance:none;appearance:none;cursor:pointer;touch-action:manipulation;">
+        <span style="font-size:14px;font-weight:600;color:#f0eaf8;">cm</span>
+        <span style="font-size:15px;font-weight:700;color:#c94dff;" id="cm-v">3</span>
+        <span id="cm-arr" style="color:rgba(240,234,248,.3);font-size:16px;transition:transform .3s;">▾</span>
+      </button>
+      <button id="mm-tog" onclick="togSz('mm')" style="flex:1;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:13px 16px;font-family:'Inter',sans-serif;-webkit-appearance:none;appearance:none;cursor:pointer;touch-action:manipulation;">
+        <span style="font-size:14px;font-weight:600;color:#f0eaf8;">mm</span>
+        <span style="font-size:15px;font-weight:700;color:#c94dff;" id="mm-v">0</span>
+        <span id="mm-arr" style="color:rgba(240,234,248,.3);font-size:16px;transition:transform .3s;">▾</span>
+      </button>
     </div>
-    <div class="szsec">
-      <div class="sztog" id="mm-tog" onclick="togSz('mm')"><span class="lbl">Millimètres</span><span class="val" id="mm-v">0 mm</span><span class="arr">▾</span></div>
-      <div class="szpick" id="mm-pick"><div class="szinner"><button class="rbtn" onclick="adj('mm',-1)">−</button><div class="rnum" id="mm-n">0</div><button class="rbtn" onclick="adj('mm',1)">+</button></div></div>
+    <!-- Accordéon partagé CM/MM -->
+    <div id="sz-acc" style="max-height:0;overflow:hidden;transition:max-height .3s ease;">
+      <div id="cm-pick" style="display:none;"><div class="szinner"><button class="rbtn" onclick="adj('cm',-1)">−</button><div class="rnum" id="cm-n">3</div><button class="rbtn" onclick="adj('cm',1)">+</button></div></div>
+      <div id="mm-pick" style="display:none;"><div class="szinner"><button class="rbtn" onclick="adj('mm',-1)">−</button><div class="rnum" id="mm-n">0</div><button class="rbtn" onclick="adj('mm',1)">+</button></div></div>
     </div>
     <div id="szres">Sticker : <strong id="sz-out">3.2 cm × 3.2 cm</strong> (QR + 2mm)</div>
     <div class="fld"><label>Nom du spot</label><input type="text" id="sp-lbl" placeholder="Ex: Parking République"></div>
@@ -886,11 +896,24 @@ function clearYT() {
 
 // SIZE
 function togSz(t) {
-  var tog=document.getElementById(t+'-tog'), pick=document.getElementById(t+'-pick');
-  var was=pick.classList.contains('open');
-  document.querySelectorAll('.szpick').forEach(p=>p.classList.remove('open'));
-  document.querySelectorAll('.sztog').forEach(p=>p.classList.remove('open'));
-  if(!was){pick.classList.add('open');tog.classList.add('open');}
+  var acc = document.getElementById('sz-acc');
+  var cmPick = document.getElementById('cm-pick');
+  var mmPick = document.getElementById('mm-pick');
+  var cmArr = document.getElementById('cm-arr');
+  var mmArr = document.getElementById('mm-arr');
+  var already = acc.style.maxHeight !== '0px' && acc.style.maxHeight !== ''
+                && document.getElementById(t+'-pick').style.display !== 'none';
+  // Fermer tout
+  acc.style.maxHeight = '0px';
+  cmPick.style.display = 'none'; mmPick.style.display = 'none';
+  if (cmArr) cmArr.style.transform = '';
+  if (mmArr) mmArr.style.transform = '';
+  if (!already) {
+    document.getElementById(t+'-pick').style.display = 'block';
+    acc.style.maxHeight = '120px';
+    if (t === 'cm' && cmArr) cmArr.style.transform = 'rotate(180deg)';
+    if (t === 'mm' && mmArr) mmArr.style.transform = 'rotate(180deg)';
+  }
 }
 var startMin=0, startSec=0;
 
@@ -927,8 +950,8 @@ function toggleYtAcc() {
   }
 }
 function adj(t,d) {
-  if(t==='cm'){cmV=Math.max(1,Math.min(20,cmV+d));document.getElementById('cm-n').textContent=cmV;document.getElementById('cm-v').textContent=cmV+' cm';}
-  else{mmV=Math.max(0,Math.min(9,mmV+d));document.getElementById('mm-n').textContent=mmV;document.getElementById('mm-v').textContent=mmV+' mm';}
+  if(t==='cm'){cmV=Math.max(1,Math.min(20,cmV+d));document.getElementById('cm-n').textContent=cmV;document.getElementById('cm-v').textContent=cmV;}
+  else{mmV=Math.max(0,Math.min(9,mmV+d));document.getElementById('mm-n').textContent=mmV;document.getElementById('mm-v').textContent=mmV;}
   var total=(cmV*10+mmV+2)/10;
   document.getElementById('sz-out').textContent=total.toFixed(1)+' cm × '+total.toFixed(1)+' cm';
 }
