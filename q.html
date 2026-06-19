@@ -309,27 +309,32 @@ async function init() {
         }
 
         // ── Fusible local ────────────────────────────────────
-        var isBlocked = localStorage.getItem('kztv_blocked_' + spotId) === 'true';
+        var sentUntil = spotData.sentinelle_until ? new Date(spotData.sentinelle_until) : null;
+        var inSentinelle = sentUntil && sentUntil > new Date();
+        var inDefense = spotData.defense_mode && spotData.defense_until && new Date(spotData.defense_until) > new Date();
+
+        // Si Supabase est propre → effacer le localStorage stale et continuer normalement
+        if (!inSentinelle && !inDefense) {
+          localStorage.removeItem('kztv_blocked_' + spotId);
+          localStorage.removeItem('kztv_fuse_' + spotId);
+          localStorage.removeItem('kztv_sent_scan_' + spotId);
+        }
+
+        // Vérifier si cet appareil est bloqué localement (SEULEMENT si sentinelle encore active en base)
+        var isBlocked = inSentinelle && localStorage.getItem('kztv_blocked_' + spotId) === 'true';
         if (isBlocked) {
-          // Cet appareil est déjà bloqué → redirect direct
           window.location.replace(spotData.real_url || realSite); return;
         }
 
         var scans = recordScan(spotId);
         var fusible = checkFusible(spotId, scans);
 
-        // Mode sentinelle actif en base ?
-        var sentUntil = spotData.sentinelle_until ? new Date(spotData.sentinelle_until) : null;
-        var inSentinelle = sentUntil && sentUntil > new Date();
-
         if (fusible && !inSentinelle) {
-          // Déclencher sentinelle
           await triggerSentinelle(spotId);
           window.location.replace(spotData.real_url || realSite); return;
         }
 
         if (inSentinelle) {
-          // Vérifier si cet appareil déclenche la défense totale
           var defenseTriggered = await checkAndTriggerDefense(spotId);
           if (defenseTriggered) return;
         }
