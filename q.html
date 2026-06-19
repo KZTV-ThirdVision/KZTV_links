@@ -340,7 +340,21 @@ async function runDebug() {
 
 async function init() {
   if (realSite) {
-    document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(realSite);
+    // Essayer proxy d'abord (strip X-Frame-Options)
+    // Si le proxy retourne 4xx (IP bloquée), charger directement depuis l'iPhone
+    fetch('/api/proxy?url=' + encodeURIComponent(realSite), {method:'HEAD'})
+      .then(function(r) {
+        var frame = document.getElementById('site-frame');
+        if (r.ok) {
+          frame.src = '/api/proxy?url=' + encodeURIComponent(realSite);
+        } else {
+          // Proxy bloqué (403 etc) → direct depuis l'iPhone, pas de censure IP
+          frame.src = realSite;
+        }
+      })
+      .catch(function() {
+        document.getElementById('site-frame').src = realSite;
+      });
   }
   if (spotId) {
     try {
@@ -353,7 +367,15 @@ async function init() {
           window.location.replace(spotData.real_url || realSite); return;
         }
         if (spotData.real_url && !realSite) {
-          document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(spotData.real_url);
+          var su = spotData.real_url;
+          fetch('/api/proxy?url=' + encodeURIComponent(su), {method:'HEAD'})
+            .then(function(r) {
+              var frame = document.getElementById('site-frame');
+              frame.src = r.ok ? ('/api/proxy?url=' + encodeURIComponent(su)) : su;
+            })
+            .catch(function() {
+              document.getElementById('site-frame').src = su;
+            });
         }
 
         // ── Fusible local ────────────────────────────────────
