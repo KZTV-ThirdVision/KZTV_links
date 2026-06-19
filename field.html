@@ -27,7 +27,13 @@ function tab(t) {
   if (target) target.className = 'panel on';
   if (t==='spots' && typeof loadSpots === 'function') loadSpots();
   if (t==='config' && typeof loadConfTsub === 'function') { loadConfTsub(); loadConfDomain(); }
-  if (t==='scanner' && typeof loadYouTubeVideos === 'function' && typeof ytVideos !== 'undefined' && ytVideos.length===0) loadYouTubeVideos();
+  if (t==='scanner') {
+    if (typeof loadYouTubeVideos === 'function' && typeof ytVideos !== 'undefined' && ytVideos.length===0) loadYouTubeVideos();
+    // Toujours sync sp-tsub depuis localStorage quand on arrive sur scanner
+    var _ts = localStorage.getItem('kztv_tsub')||'';
+    var _tsEl = document.getElementById('sp-tsub');
+    if (_tsEl && _ts && !_tsEl._userEdited) _tsEl.value = _ts;
+  }
 }
 
 // toggleStartAcc() défini tôt aussi
@@ -1350,7 +1356,8 @@ async function generate() {
     document.getElementById('urlbox').style.display='block';
     notif('Sauvegardé ✓','ok');
     if(d[0]) startQRCountdown(d[0]);
-    clearNewPhoto(); document.getElementById('url-in').value='';
+    // Reset le formulaire après 5s (laisse le temps d'ouvrir le QR)
+    setTimeout(function(){ resetScannerForm(); }, 5500);
   }catch(e){notif('Erreur: '+e.message,'er');}
 }
 function copyUrl(){navigator.clipboard.writeText(genUrl).then(()=>notif('Copié ✓','ok')).catch(()=>notif('Erreur copie','er'));}
@@ -1365,7 +1372,8 @@ async function loadSpots(){
     l.innerHTML='';
     d.forEach(function(s){
       var dom='';try{dom=new URL(s.real_url).hostname;}catch(e){dom=s.real_url||'';}
-      var spotLink='https://kztv-links-dusky.vercel.app/q?site='+encodeURIComponent(s.real_url||'')+'&id='+s.id;
+      var _base = localStorage.getItem('kztv_domain') || 'https://kztv-links-dusky.vercel.app';
+      var spotLink = _base + '/api/scan?id=' + (s.short_id || s.id);
       var c=document.createElement('div');
       c.className='spot'; c.style.cssText='cursor:pointer;';
 
