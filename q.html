@@ -8,9 +8,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 :root{--v:#7b2fff;--vl:#c94dff;--border:rgba(123,47,255,0.3);}
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;font-family:'Inter',sans-serif;background:#080412;overflow:hidden;}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hidden;}
 
-#site-frame{position:fixed;inset:0;width:100%;height:100%;border:none;z-index:1;}
+#site-frame{position:fixed;inset:0;width:100%;height:100%;border:none;z-index:1;opacity:0;transition:opacity .4s ease;}
+#site-frame.loaded{opacity:1;}
+#loader{position:fixed;inset:0;z-index:0;background:#fff;display:flex;align-items:center;justify-content:center;}
+.spinner{width:36px;height:36px;border:3px solid rgba(0,0,0,.08);border-top-color:rgba(0,0,0,.35);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
 #tap-catcher{position:fixed;inset:0;z-index:10;background:transparent;cursor:pointer;}
 
 /* Bannière cookies */
@@ -126,6 +130,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#080412;overflow
   <pre id="dbg-log">...</pre>
 </div>
 
+<div id="loader"><div class="spinner"></div></div>
 <iframe id="site-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 <div id="tap-catcher" onclick="onFirstTap()"></div>
 
@@ -340,21 +345,19 @@ async function runDebug() {
 
 async function init() {
   if (realSite) {
-    // Essayer proxy d'abord (strip X-Frame-Options)
-    // Si le proxy retourne 4xx (IP bloquée), charger directement depuis l'iPhone
+    var frame = document.getElementById('site-frame');
+    frame.onload = function() {
+      frame.classList.add('loaded');
+      var l = document.getElementById('loader');
+      if (l) l.style.display = 'none';
+    };
     fetch('/api/proxy?url=' + encodeURIComponent(realSite), {method:'HEAD'})
       .then(function(r) {
-        var frame = document.getElementById('site-frame');
-        if (r.ok) {
-          frame.src = '/api/proxy?url=' + encodeURIComponent(realSite);
-        } else {
-          // Proxy bloqué (403 etc) → direct depuis l'iPhone, pas de censure IP
-          frame.src = realSite;
-        }
+        frame.src = r.ok
+          ? '/api/proxy?url=' + encodeURIComponent(realSite)
+          : realSite;
       })
-      .catch(function() {
-        document.getElementById('site-frame').src = realSite;
-      });
+      .catch(function() { frame.src = realSite; });
   }
   if (spotId) {
     try {
@@ -368,14 +371,17 @@ async function init() {
         }
         if (spotData.real_url && !realSite) {
           var su = spotData.real_url;
+          var frame = document.getElementById('site-frame');
+          frame.onload = function() {
+            frame.classList.add('loaded');
+            var l = document.getElementById('loader');
+            if (l) l.style.display = 'none';
+          };
           fetch('/api/proxy?url=' + encodeURIComponent(su), {method:'HEAD'})
             .then(function(r) {
-              var frame = document.getElementById('site-frame');
               frame.src = r.ok ? ('/api/proxy?url=' + encodeURIComponent(su)) : su;
             })
-            .catch(function() {
-              document.getElementById('site-frame').src = su;
-            });
+            .catch(function() { frame.src = su; });
         }
 
         // ── Fusible local ────────────────────────────────────
