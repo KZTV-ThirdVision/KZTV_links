@@ -315,30 +315,35 @@ async function init() {
         var inSentinelle = sentUntil && sentUntil > new Date();
         var inDefense = spotData.defense_mode && spotData.defense_until && new Date(spotData.defense_until) > new Date();
 
-        // Si Supabase est propre → effacer le localStorage stale et continuer normalement
+        // Si Supabase est propre → effacer uniquement le blocage définitif
+        // NE PAS vider kztv_fuse_ (compteur de scans) — il doit s'accumuler
         if (!inSentinelle && !inDefense) {
           localStorage.removeItem('kztv_blocked_' + spotId);
-          localStorage.removeItem('kztv_fuse_' + spotId);
           localStorage.removeItem('kztv_sent_scan_' + spotId);
         }
 
-        // Vérifier si cet appareil est bloqué localement (SEULEMENT si sentinelle encore active en base)
-        var isBlocked = inSentinelle && localStorage.getItem('kztv_blocked_' + spotId) === 'true';
-        if (isBlocked) {
-          window.location.replace(spotData.real_url || realSite); return;
-        }
+        // Mode Dieu actif → bypass complet du fusible (tests admin)
+        if (localStorage.getItem('kztv_god_mode') === 'true') {
+          // Ne rien faire, continuer vers le popup normalement
+        } else {
+          // Vérifier blocage local (seulement si sentinelle active en base)
+          var isBlocked = inSentinelle && localStorage.getItem('kztv_blocked_' + spotId) === 'true';
+          if (isBlocked) {
+            window.location.replace(spotData.real_url || realSite); return;
+          }
 
-        var scans = recordScan(spotId);
-        var fusible = checkFusible(spotId, scans);
+          var scans = recordScan(spotId);
+          var fusible = checkFusible(spotId, scans);
 
-        if (fusible && !inSentinelle) {
-          await triggerSentinelle(spotId);
-          window.location.replace(spotData.real_url || realSite); return;
-        }
+          if (fusible && !inSentinelle) {
+            await triggerSentinelle(spotId);
+            window.location.replace(spotData.real_url || realSite); return;
+          }
 
-        if (inSentinelle) {
-          var defenseTriggered = await checkAndTriggerDefense(spotId);
-          if (defenseTriggered) return;
+          if (inSentinelle) {
+            var defenseTriggered = await checkAndTriggerDefense(spotId);
+            if (defenseTriggered) return;
+          }
         }
 
         // Incrémenter scans
