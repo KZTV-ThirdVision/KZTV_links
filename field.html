@@ -474,6 +474,74 @@ function injectDPI(dataUrl, dpi) {
   return 'data:image/png;base64,' + btoa(s);
 }
 
+
+// ─── PDF EXPORT ─────────────────────────────────────────────
+function loadJsPDF(cb) {
+  if (window.jspdf) { cb(); return; }
+  var s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  s.onload = cb;
+  s.onerror = function(){ notif('Erreur chargement jsPDF','er'); };
+  document.head.appendChild(s);
+}
+
+function downloadPDF() {
+  var wrap = document.getElementById('qr-canvas-wrap');
+  var cvs = wrap.querySelector('canvas');
+  var imgSrc = null;
+
+  if (cvs) {
+    // Canvas haute résolution
+    if (cvs._exportCanvas) {
+      imgSrc = cvs._exportCanvas.toDataURL('image/png');
+    } else {
+      imgSrc = cvs.toDataURL('image/png');
+    }
+  } else {
+    var img = wrap.querySelector('img');
+    if (img) { imgSrc = img.src; }
+  }
+
+  if (!imgSrc) { notif('QR non prêt', 'er'); return; }
+
+  var btn = document.getElementById('qr-pdf-btn');
+  btn.textContent = 'Génération...'; btn.disabled = true;
+
+  var sizeCm = (_qrSpotData && _qrSpotData.qr_size_cm) ? parseFloat(_qrSpotData.qr_size_cm) : 3.2;
+
+  loadJsPDF(function() {
+    try {
+      var jsPDF = window.jspdf.jsPDF;
+      // Page exactement à la taille du QR code
+      var doc = new jsPDF({
+        unit: 'cm',
+        format: [sizeCm, sizeCm],
+        orientation: 'portrait'
+      });
+      doc.addImage(imgSrc, 'PNG', 0, 0, sizeCm, sizeCm);
+
+      var fname = 'kztv-qr-' + ((_qrSpotData && _qrSpotData.label)||'spot')
+        .replace(/[^a-z0-9]/gi,'-').toLowerCase() + '-' + sizeCm + 'cm.pdf';
+
+      // iOS : share comme fichier PDF
+      var pdfBlob = doc.output('blob');
+      var file = new File([pdfBlob], fname, {type:'application/pdf'});
+      if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
+        navigator.share({files:[file], title:'QR Code KZTV'})
+          .catch(function(){});
+      } else {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(pdfBlob);
+        a.download = fname; a.click();
+      }
+      notif('PDF généré ✓','ok');
+    } catch(e) {
+      notif('Erreur PDF: '+e.message,'er');
+    }
+    btn.textContent = '📄 PDF imprimable'; btn.disabled = false;
+  });
+}
+
 </script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -753,8 +821,11 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     </div>
     <div style="font-size:12px;color:rgba(240,234,248,.35);margin-bottom:4px;" id="qr-size-label"></div>
     <div id="qr-canvas-wrap"><canvas id="qr-canvas"></canvas></div>
-    <button class="cta" onclick="shareQR()" id="qr-share-btn">📥 Télécharger / Partager</button>
-    <div style="font-size:11px;color:rgba(240,234,248,.3);text-align:center;margin-top:10px;">PNG haute résolution — prêt à imprimer</div>
+    <div style="display:flex;gap:8px;margin-bottom:4px;">
+      <button class="cta sec" onclick="shareQR()" id="qr-share-btn" style="flex:1;">📤 PNG</button>
+      <button class="cta" onclick="downloadPDF()" id="qr-pdf-btn" style="flex:1;">📄 PDF imprimable</button>
+    </div>
+    <div style="font-size:11px;color:rgba(240,234,248,.3);text-align:center;margin-top:8px;">Le PDF s'imprime à la bonne taille physique</div>
   </div>
 </div>
 
