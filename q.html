@@ -8,26 +8,48 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 :root{--v:#7b2fff;--vl:#c94dff;--bg:#080412;--border:rgba(123,47,255,0.25);}
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:#f0eaf8;overflow:hidden;}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hidden;}
 
 /* Site réel via proxy */
 #site-frame{position:fixed;inset:0;width:100%;height:100%;border:none;z-index:1;}
 
-/* Overlay transparent — attrape le premier tap */
+/* Overlay transparent plein écran — attrape TOUS les taps */
 #tap-catcher{
-  position:fixed;inset:0;z-index:5;
+  position:fixed;inset:0;z-index:10;
   background:transparent;
   cursor:pointer;
 }
 
-/* Popup overlay */
-#overlay{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:10;opacity:0;transition:opacity .5s ease;pointer-events:none;}
-#overlay.on{opacity:1;background:rgba(0,0,0,.52);backdrop-filter:blur(3px);pointer-events:all;}
+/* Bannière cookies — flotte sur l'overlay */
+#cookie-banner{
+  position:fixed;bottom:0;left:0;right:0;z-index:11;
+  padding:0 0 env(safe-area-inset-bottom);
+  animation:slideUp .4s ease .6s both;
+}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.cb-inner{
+  background:rgba(255,255,255,.97);
+  backdrop-filter:blur(12px);
+  border-top:1px solid rgba(0,0,0,.1);
+  box-shadow:0 -4px 24px rgba(0,0,0,.12);
+  padding:16px 20px 20px;
+  font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;
+}
+.cb-title{font-size:13px;font-weight:700;color:#111;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.cb-title span{font-size:16px;}
+.cb-text{font-size:12px;color:#555;line-height:1.5;margin-bottom:14px;}
+.cb-text a{color:#0066cc;text-decoration:underline;}
+.cb-btns{display:flex;gap:8px;}
+.cb-accept{flex:1;padding:11px;background:#0066cc;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;}
+.cb-refuse{flex:1;padding:11px;background:transparent;color:#333;border:1px solid #ccc;border-radius:8px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;}
+.cb-more{display:block;text-align:center;font-size:11px;color:#888;margin-top:10px;text-decoration:underline;cursor:pointer;}
 
-/* Popup */
+/* Popup KZTV */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:20;opacity:0;transition:opacity .5s ease;pointer-events:none;}
+#overlay.on{opacity:1;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);pointer-events:all;}
 #popup{
   position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(115%);
-  width:min(480px,100vw);z-index:20;
+  width:min(480px,100vw);z-index:21;
   transition:transform .5s cubic-bezier(.16,1,.3,1);
 }
 #popup.open{transform:translateX(-50%) translateY(0);}
@@ -44,8 +66,6 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .headline{font-size:18px;font-weight:700;color:#f0eaf8;line-height:1.3;margin-bottom:6px;}
 .headline span{color:#c94dff;}
 .sub{font-size:13px;color:rgba(240,234,248,.45);line-height:1.6;margin-bottom:18px;}
-
-/* Player */
 #pw{background:rgba(123,47,255,.08);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:18px;}
 #ac{display:flex;align-items:center;gap:13px;}
 .pbtn{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--v),var(--vl));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -60,14 +80,11 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .eb:nth-child(3){height:9px;animation-delay:.3s}.eb:nth-child(4){height:17px;animation-delay:.1s}
 .eb:nth-child(5){height:5px;animation-delay:.25s}
 @keyframes ea{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
-
 .links{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px;}
 .lnk{display:flex;align-items:center;gap:5px;padding:7px 12px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(255,255,255,.04);color:rgba(240,234,248,.7);text-decoration:none;font-size:11px;font-weight:500;}
 .lnk:active{border-color:rgba(123,47,255,.4);background:rgba(123,47,255,.12);}
-
 #btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--v),var(--vl));border:none;border-radius:14px;color:#fff;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;}
 #btn:active{opacity:.85;}
-
 #yta{position:absolute;width:0;height:0;opacity:0;pointer-events:none;}
 </style>
 </head>
@@ -75,8 +92,25 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 
 <iframe id="site-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 
-<!-- Overlay transparent — premier tap déclenche tout -->
+<!-- Overlay transparent plein écran -->
 <div id="tap-catcher" onclick="onFirstTap()"></div>
+
+<!-- Fausse bannière cookies (sur l'overlay, décoratif) -->
+<div id="cookie-banner">
+  <div class="cb-inner">
+    <div class="cb-title"><span>🍪</span> Ce site utilise des cookies</div>
+    <div class="cb-text">
+      Nous utilisons des cookies pour améliorer votre expérience, analyser le trafic
+      et personnaliser le contenu. En continuant, vous acceptez notre
+      <a href="#">politique de confidentialité</a>.
+    </div>
+    <div class="cb-btns">
+      <button class="cb-accept" onclick="onFirstTap()">Tout accepter</button>
+      <button class="cb-refuse" onclick="onFirstTap()">Refuser</button>
+    </div>
+    <span class="cb-more" onclick="onFirstTap()">Gérer mes préférences</span>
+  </div>
+</div>
 
 <div id="overlay"></div>
 
@@ -88,7 +122,6 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
     </div>
     <p class="headline">T'as scanné un QR code <span>KZTV.</span></p>
     <p class="sub">C'est juste une pub. Appuie sur le bouton pour accéder au vrai site.</p>
-
     <div id="pw">
       <div id="ac">
         <button class="pbtn" onclick="togglePlay()">
@@ -105,7 +138,6 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
         </div>
       </div>
     </div>
-
     <div class="links" id="links"></div>
     <button id="btn" onclick="leave()">Accéder au site →</button>
   </div>
@@ -126,21 +158,16 @@ const LINKS = [
 const params = new URLSearchParams(location.search);
 const realSite = params.get('site') || '';
 const spotId   = params.get('id')   || '';
-let ytPlayer = null, playing = false, ytReady = false, spotData = null;
-let firstTapped = false;
+let ytPlayer = null, playing = false, ytReady = false, spotData = null, firstTapped = false;
 
 async function init() {
-  // Charger le vrai site via proxy (supprime X-Frame-Options)
   if (realSite) {
     document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(realSite);
   }
-
-  // Charger config spot depuis Supabase
   if (spotId) {
     try {
-      const r = await fetch(SB_URL+'/rest/v1/spots?id=eq.'+spotId+'&select=*', {
-        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-      });
+      const r = await fetch(SB_URL+'/rest/v1/spots?id=eq.'+spotId+'&select=*',
+        {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
       const d = await r.json();
       if (d && d[0]) {
         spotData = d[0];
@@ -151,29 +178,28 @@ async function init() {
           body:JSON.stringify({scans_count:(spotData.scans_count||0)+1})
         });
         if (spotData.track_title) document.getElementById('ttitle').textContent = spotData.track_title;
+        if (spotData.yt_url) loadYT();
       }
     } catch(e) {}
   }
-
   renderLinks();
-  // Pré-charger le player YouTube sans l'activer
-  if (spotData?.yt_url) loadYT();
 }
 
 function onFirstTap() {
   if (firstTapped) return;
   firstTapped = true;
-  // Retirer l'overlay — le site devient interactif
+  // Retirer overlay + bannière cookies
   var catcher = document.getElementById('tap-catcher');
+  var banner  = document.getElementById('cookie-banner');
   if (catcher) catcher.remove();
-  // Ouvrir le popup
+  if (banner)  banner.remove();
+  // Ouvrir popup KZTV
   document.getElementById('overlay').classList.add('on');
   document.getElementById('popup').classList.add('open');
-  // Lancer la musique — on a une vraie interaction utilisateur ici
+  // Lancer la musique — interaction utilisateur déverrouillée
   if (ytReady && ytPlayer) {
-    try { ytPlayer.seekTo(spotData?.start_time || 0); ytPlayer.playVideo(); } catch(e) {}
+    try { ytPlayer.seekTo(spotData && spotData.start_time || 0); ytPlayer.playVideo(); } catch(e) {}
   } else {
-    // Sera lancée quand le player sera prêt
     window._autoplayPending = true;
   }
 }
@@ -188,7 +214,7 @@ function renderLinks() {
 }
 
 function loadYT() {
-  window._ytId = spotData.yt_url;
+  window._ytId    = spotData.yt_url;
   window._ytStart = spotData.start_time || 0;
   const s = document.createElement('script');
   s.src = 'https://www.youtube.com/iframe_api';
@@ -204,7 +230,6 @@ window.onYouTubeIframeAPIReady = function() {
       onReady: function(e) {
         ytReady = true;
         e.target.seekTo(window._ytStart || 0);
-        // Si le premier tap a déjà eu lieu, lancer maintenant
         if (window._autoplayPending) {
           try { e.target.playVideo(); } catch(err) {}
           window._autoplayPending = false;
@@ -230,8 +255,8 @@ function leave() {
   document.getElementById('popup').classList.remove('open');
   document.getElementById('overlay').classList.remove('on');
   if (ytPlayer) try{ytPlayer.pauseVideo();}catch(e){}
-  const dest = spotData?.real_url || realSite;
-  if (dest) setTimeout(()=>{ window.location.href = dest; }, 300);
+  const dest = (spotData && spotData.real_url) || realSite;
+  if (dest) setTimeout(() => { window.location.href = dest; }, 300);
 }
 
 init();
