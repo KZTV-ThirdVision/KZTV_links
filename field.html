@@ -26,6 +26,7 @@ function tab(t) {
   var target = document.getElementById('p-'+t);
   if (target) target.className = 'panel on';
   if (t==='spots' && typeof loadSpots === 'function') loadSpots();
+  if (t==='config' && typeof loadConfTsub === 'function') loadConfTsub();
   if (t==='scanner' && typeof loadYouTubeVideos === 'function' && typeof ytVideos !== 'undefined' && ytVideos.length===0) loadYouTubeVideos();
 }
 
