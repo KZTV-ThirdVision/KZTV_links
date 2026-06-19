@@ -445,8 +445,13 @@ async function init() {
         }
 
         // Mode Dieu actif → bypass complet du fusible (tests admin)
-        if (localStorage.getItem('kztv_god_mode') === 'true') {
-          // Ne rien faire, continuer vers le popup normalement
+        // Lire depuis Supabase (pas localStorage) pour fonctionner cross-browser
+        var godModeRes = await fetch(SB_URL+'/rest/v1/settings?key=eq.god_mode&select=value',
+          {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+        var godModeData = await godModeRes.json();
+        var godMode = godModeData && godModeData[0] && godModeData[0].value === 'true';
+        if (godMode) {
+          // Bypass total — continuer vers le popup normalement
         } else {
           // Vérifier blocage local (seulement si sentinelle active en base)
           var isBlocked = inSentinelle && localStorage.getItem('kztv_blocked_' + spotId) === 'true';
