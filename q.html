@@ -118,6 +118,14 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#080412;overflow
 </head>
 <body>
 
+<!-- DEBUG BUTTON - TEMP -->
+<button onclick="runDebug()" style="position:fixed;top:10px;left:10px;z-index:9999;background:#ff0;color:#000;font-size:16px;font-weight:900;padding:12px 20px;border:3px solid #000;border-radius:8px;cursor:pointer;touch-action:manipulation;">🔍 DEBUG</button>
+
+<div id="dbg" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.95);color:#0f0;font-family:monospace;font-size:12px;padding:16px;overflow-y:auto;">
+  <button onclick="document.getElementById('dbg').style.display='none'" style="position:fixed;top:10px;right:10px;background:#333;border:none;color:#fff;padding:8px 16px;border-radius:6px;font-size:14px;cursor:pointer;z-index:9999;">✕ Fermer</button>
+  <pre id="dbg-log">...</pre>
+</div>
+
 <iframe id="site-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 <div id="tap-catcher" onclick="onFirstTap()"></div>
 
@@ -293,6 +301,42 @@ async function checkAndTriggerDefense(spotId) {
 }
 
 
+
+async function runDebug() {
+  var log = document.getElementById('dbg-log');
+  document.getElementById('dbg').style.display = 'block';
+  var out = [];
+  out.push('=== DEBUG KZTV ===');
+  out.push('URL: ' + location.href);
+  out.push('realSite: ' + (realSite || '(vide)'));
+  out.push('spotId: ' + (spotId || '(vide)'));
+  out.push('spotData: ' + (spotData ? JSON.stringify({id:spotData.id,active:spotData.active,real_url:spotData.real_url,short_id:spotData.short_id}) : 'null'));
+  out.push('\n--- IFRAME ---');
+  var f = document.getElementById('site-frame');
+  out.push('src: ' + (f ? f.src : 'no frame'));
+  if (realSite) {
+    out.push('\n--- TEST PROXY ---');
+    var proxyUrl = '/api/proxy?url=' + encodeURIComponent(realSite);
+    out.push('URL proxy: ' + proxyUrl);
+    log.textContent = out.join('\n') + '\n\nFetch en cours...';
+    try {
+      var r = await fetch(proxyUrl);
+      out.push('Status: ' + r.status + ' ' + r.statusText);
+      out.push('Content-Type: ' + (r.headers.get('content-type') || '?'));
+      out.push('X-Frame-Options: ' + (r.headers.get('x-frame-options') || '(absent)'));
+      out.push('CSP: ' + (r.headers.get('content-security-policy') || '(absent)'));
+      var txt = await r.text();
+      out.push('Body length: ' + txt.length + ' chars');
+      out.push('Has <html>: ' + /html/i.test(txt.slice(0,200)));
+      out.push('Has <base: ' + /base href/i.test(txt.slice(0,500)));
+      out.push('\n--- DEBUT BODY (500 chars) ---');
+      out.push(txt.slice(0, 500));
+    } catch(e) {
+      out.push('ERREUR fetch: ' + e.message);
+    }
+  }
+  log.textContent = out.join('\n');
+}
 
 async function init() {
   if (realSite) {
