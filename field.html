@@ -271,24 +271,31 @@ function generateQR(spotUrl, sizeCm) {
     sizeCm.toFixed(1) + ' cm x ' + sizeCm.toFixed(1) + ' cm - ' + px + 'px @ 300dpi';
   var wrap = document.getElementById('qr-canvas-wrap');
   wrap.innerHTML = '';
+  // Générer le QR haute résolution dans un canvas caché pour l'export
+  var exportDiv = document.createElement('div');
+  exportDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
+  document.body.appendChild(exportDiv);
+
   loadQRLib(function() {
-    new QRCode(wrap, {
-      text: spotUrl,
-      width: px,
-      height: px,
-      colorDark: '#000000',
-      colorLight: '#ffffff',
+    new QRCode(exportDiv, {
+      text: spotUrl, width: px, height: px,
+      colorDark: '#000000', colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.H
     });
     setTimeout(function() {
-      var el = wrap.querySelector('canvas') || wrap.querySelector('img');
-      if (el) {
-        el.style.maxWidth = '220px';
-        el.style.maxHeight = '220px';
-        el.style.width = 'auto';
-        el.style.height = 'auto';
-        el.style.display = 'block';
-      }
+      var src = exportDiv.querySelector('canvas') || exportDiv.querySelector('img');
+      if (!src) return;
+      // Afficher dans le wrap en 188px (taille affichage)
+      var display = document.createElement('canvas');
+      display.width = 188; display.height = 188;
+      display.getContext('2d').drawImage(src, 0, 0, 188, 188);
+      display.setAttribute('data-export-src', 'true');
+      // Stocker le canvas haute res pour l'export
+      display._exportCanvas = src.tagName === 'CANVAS' ? src : null;
+      display._exportImg = src.tagName === 'IMG' ? src : null;
+      wrap.innerHTML = '';
+      wrap.appendChild(display);
+      document.body.removeChild(exportDiv);
     }, 200);
   });
   document.getElementById('qr-overlay').classList.add('on');
@@ -298,16 +305,31 @@ function generateQR(spotUrl, sizeCm) {
 function openQRFromEdit() {
   var url = document.getElementById('edit-url').value;
   if (!url) { notif('URL manquante', 'er'); return; }
-  var qrUrl = 'https://kztv-links-dusky.vercel.app/q?site=' + encodeURIComponent(url) + '&id=' + (_editSpotId || '');
+  // Réutiliser l'URL QR déjà générée si elle existe
+  var qrUrl = (_qrSpotData && _qrSpotData.qr_url)
+    ? _qrSpotData.qr_url
+    : 'https://kztv-links-dusky.vercel.app/q?site=' + encodeURIComponent(url) + '&id=' + (_editSpotId || '');
+  // Sauvegarder dans Supabase si nouvelle URL
+  if (_editSpotId && !(_qrSpotData && _qrSpotData.qr_url)) {
+    var SB='https://bkqdhndjmpwdtcelrdit.supabase.co';
+    var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
+    fetch(SB+'/rest/v1/spots?id=eq.'+_editSpotId, {
+      method:'PATCH',
+      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({qr_url: qrUrl})
+    });
+    if (_qrSpotData) _qrSpotData.qr_url = qrUrl;
+  }
   var sizeCm = (_qrSpotData && _qrSpotData.qr_size_cm) ? parseFloat(_qrSpotData.qr_size_cm) : 3.2;
   generateQR(qrUrl, sizeCm);
 }
 
 function openQRFromGenerated() {
   if (!_qrSpotData) { notif('Spot introuvable', 'er'); return; }
-  var url = 'https://kztv-links-dusky.vercel.app/q?site=' + encodeURIComponent(_qrSpotData.real_url || '') + '&id=' + _qrSpotData.id;
+  var qrUrl = _qrSpotData.qr_url
+    || ('https://kztv-links-dusky.vercel.app/q?site=' + encodeURIComponent(_qrSpotData.real_url || '') + '&id=' + _qrSpotData.id);
   var sizeCm = _qrSpotData.qr_size_cm ? parseFloat(_qrSpotData.qr_size_cm) : 3.2;
-  generateQR(url, sizeCm);
+  generateQR(qrUrl, sizeCm);
 }
 
 
@@ -318,7 +340,20 @@ function closeQR() {
 
 function shareQR() {
   var wrap = document.getElementById('qr-canvas-wrap');
-  var cvs = wrap.querySelector('canvas');
+  var displayCvs = wrap.querySelector('canvas');
+  // Utiliser le canvas haute résolution si disponible
+  var cvs = null;
+  if (displayCvs && displayCvs._exportCanvas) {
+    cvs = displayCvs._exportCanvas;
+  } else if (displayCvs && displayCvs._exportImg) {
+    var img = displayCvs._exportImg;
+    var c2 = document.createElement('canvas');
+    c2.width = img.naturalWidth; c2.height = img.naturalHeight;
+    c2.getContext('2d').drawImage(img, 0, 0); cvs = c2;
+  } else {
+    cvs = displayCvs;
+  }
+  var _unused = null;
   if (!cvs) {
     var img = wrap.querySelector('img');
     if (img) {
@@ -461,7 +496,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 #qr-overlay.on{opacity:1;pointer-events:all;}
 #qr-sheet{background:#0d0820;border-radius:20px 20px 0 0;border:1px solid rgba(255,255,255,.08);width:min(480px,100%);padding:24px 24px calc(40px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .4s cubic-bezier(.16,1,.3,1);}
 #qr-sheet.open{transform:translateY(0);}
-#qr-canvas-wrap{background:#fff;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:center;margin:16px 0;}
+#qr-canvas-wrap{background:#fff;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:center;margin:16px 0;overflow:hidden;width:220px;height:220px;margin-left:auto;margin-right:auto;}
 #qr-canvas-wrap canvas{display:block;}
 
 #notif{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(8,4,18,.95);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:10px 20px;font-size:13px;color:rgba(240,234,248,.6);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
