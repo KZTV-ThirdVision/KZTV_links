@@ -218,6 +218,7 @@ async function init() {
           body:JSON.stringify({scans_count:(spotData.scans_count||0)+1})
         });
         if (spotData.track_title) document.getElementById('ttitle').textContent = spotData.track_title;
+        if (spotData.player_subtitle) document.getElementById('tsub').textContent = spotData.player_subtitle;
         if (spotData.yt_url) loadYT();
       }
     } catch(e) {}
