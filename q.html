@@ -425,8 +425,7 @@ function leave() {
     // sans aucune trace de notre domaine dans le Referer
     try {
       var html = '<!DOCTYPE html><html><head>'
-        + '<meta name="referrer" content="no-referrer">'
-        + '<meta http-equiv="refresh" content="0;url=' + dest.replace(/"/g,'\"') + '">'
+        + '    + '<meta http-equiv="refresh" content="0;url=' + dest.replace(/"/g,'\"') + '">'
         + '</head><body></body></html>';
       var blob = new Blob([html], {type:'text/html'});
       window.location.replace(URL.createObjectURL(blob));
