@@ -329,6 +329,7 @@ function openQRFromGenerated() {
   var qrUrl = _qrSpotData.qr_url
     || ('https://kztv-links-dusky.vercel.app/q?site=' + encodeURIComponent(_qrSpotData.real_url || '') + '&id=' + _qrSpotData.id);
   var sizeCm = _qrSpotData.qr_size_cm ? parseFloat(_qrSpotData.qr_size_cm) : 3.2;
+  window._qrFromNew = true; // marquer comme venant d'un nouveau spot
   generateQR(qrUrl, sizeCm);
 }
 
@@ -336,6 +337,11 @@ function openQRFromGenerated() {
 function closeQR() {
   document.getElementById('qr-overlay').classList.remove('on');
   document.getElementById('qr-sheet').classList.remove('open');
+  // Si le QR vient d'un nouveau spot (pas d'un edit), reset le formulaire
+  if (window._qrFromNew) {
+    window._qrFromNew = false;
+    setTimeout(resetScannerForm, 300);
+  }
 }
 
 function shareQR() {
@@ -935,6 +941,44 @@ function clearNewPhoto() {
   document.getElementById('new-photo-btn').style.background='';
   document.getElementById('new-photo-btn').style.borderColor='';
   document.getElementById('new-photo-btn').style.color='';
+}
+
+// RESET FORMULAIRE NOUVEAU SPOT
+function resetScannerForm() {
+  document.getElementById('url-in').value = '';
+  document.getElementById('sp-lbl').value = '';
+  document.getElementById('sp-delay').value = '0';
+  document.getElementById('sp-trk').value = '';
+  document.getElementById('sp-yt-id').value = '';
+  document.getElementById('urlbox').style.display = 'none';
+  document.getElementById('gen-url').textContent = '';
+  document.getElementById('qr-quick-btn').style.display = 'none';
+  document.getElementById('qr-countdown').style.display = 'none';
+  // Reset son sélectionné
+  var sel = document.getElementById('yt-selected');
+  if (sel) sel.style.display = 'none';
+  var lbl = document.getElementById('yt-acc-label');
+  if (lbl) lbl.textContent = 'Choisir une vidéo...';
+  // Reset start time
+  startMin = 0; startSec = 0;
+  var sm = document.getElementById('start-min');
+  var ss = document.getElementById('start-sec');
+  var sd = document.getElementById('start-display');
+  if (sm) sm.textContent = '0';
+  if (ss) ss.textContent = '00';
+  if (sd) sd.textContent = '0:00';
+  // Reset photo
+  clearNewPhoto();
+  // Reset accordéons
+  var ab = document.getElementById('yt-acc-body');
+  if (ab) ab.style.maxHeight = '0px';
+  var sb = document.getElementById('start-body');
+  if (sb) sb.style.maxHeight = '0px';
+  // Scroll en haut
+  var panel = document.getElementById('p-scanner');
+  if (panel) panel.scrollTop = 0;
+  _newSpotPhoto = null;
+  _qrSpotData = null;
 }
 
 // PRESSE-PAPIERS
