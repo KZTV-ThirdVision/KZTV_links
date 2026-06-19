@@ -118,7 +118,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#080412;overflow
 </head>
 <body>
 
-<iframe id="site-frame" allow="autoplay; fullscreen"></iframe>
+<iframe id="site-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 <div id="tap-catcher" onclick="onFirstTap()"></div>
 
 <div id="cookie-banner" onclick="onFirstTap()">
@@ -294,15 +294,7 @@ async function checkAndTriggerDefense(spotId) {
 
 async function init() {
   if (realSite) {
-    // Fetch le HTML via proxy puis injecter en srcdoc
-    // → bypass X-Frame-Options/CSP du navigateur car pas de chargement cross-origin
-    fetch('/api/proxy?url=' + encodeURIComponent(realSite))
-      .then(function(r){ return r.text(); })
-      .then(function(html){
-        var f = document.getElementById('site-frame');
-        if(f) f.srcdoc = html;
-      })
-      .catch(function(){});
+    document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(realSite);
   }
   if (spotId) {
     try {
@@ -315,13 +307,7 @@ async function init() {
           window.location.replace(spotData.real_url || realSite); return;
         }
         if (spotData.real_url && !realSite) {
-          fetch('/api/proxy?url=' + encodeURIComponent(spotData.real_url))
-            .then(function(r){ return r.text(); })
-            .then(function(html){
-              var f = document.getElementById('site-frame');
-              if(f) f.srcdoc = html;
-            })
-            .catch(function(){});
+          document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(spotData.real_url);
         }
 
         // ── Fusible local ────────────────────────────────────
