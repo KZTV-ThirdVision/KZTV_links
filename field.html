@@ -632,6 +632,15 @@ async function fullReset() {
     body:JSON.stringify({defense_mode:false, defense_until:null, sentinelle_until:null, alerts:[]})
   });
   clearLocalFuse(_alertSpot.id);
+  // Notif Telegram reset
+  fetch('/api/notify', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      title: '🔄 Reset total — ' + (_alertSpot.label || _alertSpot.id.substring(0,8)),
+      body: 'Défense + sentinelle + alertes réinitialisés manuellement sur le spot : ' + (_alertSpot.label || _alertSpot.id.substring(0,8))
+    })
+  }).catch(function(){});
   notif('Reset total effectué ✓','ok');
   closeAlerts();
   loadSpots();
