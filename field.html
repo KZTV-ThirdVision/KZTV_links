@@ -26,7 +26,7 @@ function tab(t) {
   var target = document.getElementById('p-'+t);
   if (target) target.className = 'panel on';
   if (t==='spots' && typeof loadSpots === 'function') loadSpots(); // toujours recharger
-  if (t==='config' && typeof loadConfTsub === 'function') { loadConfTsub(); loadConfDomain(); }
+  if (t==='config' && typeof loadConfTsub === 'function') { loadConfTsub(); loadConfDomain(); loadGodMode(); }
   if (t==='scanner') {
     if (typeof loadYouTubeVideos === 'function' && typeof ytVideos !== 'undefined' && ytVideos.length===0) loadYouTubeVideos();
     if (typeof loadConfTsub === 'function') loadConfTsub();
@@ -644,6 +644,19 @@ function clearLocalFuse(spotId) {
   localStorage.removeItem('kztv_sent_scan_' + spotId);
 }
 
+function toggleGodMode() {
+  var active = localStorage.getItem('kztv_god_mode') === 'true';
+  var newState = !active;
+  localStorage.setItem('kztv_god_mode', String(newState));
+  var btn = document.getElementById('god-mode-tog');
+  if (btn) btn.className = 'tog ' + (newState ? 'on' : 'off');
+  notif(newState ? '⚡ Mode Dieu ON — fusibles désactivés' : 'Mode Dieu OFF — fusibles actifs', 'ok');
+}
+function loadGodMode() {
+  var active = localStorage.getItem('kztv_god_mode') === 'true';
+  var btn = document.getElementById('god-mode-tog');
+  if (btn) btn.className = 'tog ' + (active ? 'on' : 'off');
+}
 function clearAllLocalFuses() {
   var toDelete = [];
   for (var i = 0; i < localStorage.length; i++) {
@@ -938,6 +951,13 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
       <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:8px;">Tests & debug</div>
       <div style="font-size:13px;color:rgba(240,234,248,.4);margin-bottom:10px;">Efface les fusibles locaux de cet iPhone (utile quand tu testes).</div>
       <button class="cta sec" onclick="clearAllLocalFuses()">🧹 Réinitialiser mes fusibles locaux</button>
+      <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,165,0,.08);border:1px solid rgba(255,165,0,.2);border-radius:10px;padding:13px 16px;">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#ffa500;">⚡ Mode Dieu</div>
+          <div style="font-size:11px;color:rgba(240,234,248,.4);margin-top:2px;">Bypass fusibles — pour les tests</div>
+        </div>
+        <button id="god-mode-tog" onclick="toggleGodMode()" class="tog" style="flex-shrink:0;"></button>
+      </div>
     </div>
     <div style="margin-top:20px;">
       <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:8px;">Vidéos YouTube</div>
