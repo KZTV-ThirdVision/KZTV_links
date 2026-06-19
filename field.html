@@ -132,6 +132,9 @@ function openEdit(spot) {
   }
 
   // Son sélectionné
+  // Pré-remplir sous-titre
+  var etsubEl = document.getElementById('edit-tsub');
+  if (etsubEl) etsubEl.value = spot.player_subtitle || localStorage.getItem('kztv_tsub') || '';
   if (spot.yt_url && spot.track_title) {
     document.getElementById('edit-yt-selected').style.display = 'flex';
     document.getElementById('edit-yt-title').textContent = spot.track_title;
@@ -243,6 +246,7 @@ async function saveEdit() {
     yt_url:document.getElementById('edit-yt-id').value||null,
     track_title:document.getElementById('edit-yt-title-val').value||null,
     start_time:parseInt(document.getElementById('edit-start-val').value)||0,
+    player_subtitle:document.getElementById('edit-tsub').value||null,
   };
   if(_editPhotoData) patch.photo_data=_editPhotoData;
   try{
@@ -632,6 +636,10 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
         <label>Nom affiché dans la pub</label>
         <input type="text" id="sp-trk" placeholder="Ex: KZTV — Nouvelle Ère" style="font-size:16px;">
       </div>
+      <div class="fld" style="margin-top:8px;">
+        <label>Sous-titre du player</label>
+        <input type="text" id="sp-tsub" placeholder="third vision · 2026" style="font-size:16px;">
+      </div>
     </div>
     <button class="cta" onclick="generate()">Générer + sauvegarder</button>
     <div id="urlbox">
@@ -1016,7 +1024,7 @@ async function generate() {
   var trkTitle = document.getElementById('sp-trk').value || null;
   var ytId = document.getElementById('sp-yt-id').value || null;
   try{
-    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',start_time:parseInt(document.getElementById('sp-delay').value)||0,scans_count:0,photo_data:_newSpotPhoto||null,player_subtitle:localStorage.getItem('kztv_tsub')||null})});
+    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',start_time:parseInt(document.getElementById('sp-delay').value)||0,scans_count:0,photo_data:_newSpotPhoto||null,player_subtitle:document.getElementById('sp-tsub').value||localStorage.getItem('kztv_tsub')||null})});
     var d=await r.json();
     if(!r.ok)throw new Error(d.message||'err');
     genUrl=BASE+'?site='+encodeURIComponent(url)+'&id='+d[0].id;
@@ -1093,6 +1101,9 @@ function loadConfTsub(){
   var v=localStorage.getItem('kztv_tsub')||'';
   var el=document.getElementById('conf-tsub');
   if(el && v) el.value=v;
+  // Pré-remplir aussi le champ sous-titre du formulaire Scanner
+  var sp=document.getElementById('sp-tsub');
+  if(sp && v && !sp.value) sp.value=v;
 }
 
 // NOTIF
