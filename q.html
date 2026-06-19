@@ -270,6 +270,13 @@ async function triggerSentinelle(spotId) {
       body: JSON.stringify({ sentinelle_until: sentUntil.toISOString(), alerts: existingAlerts })
     });
   } catch(e) {}
+  // Notification ntfy
+  var spotName = (spotData && spotData.label) || spotId.substring(0,8);
+  notifyKZTV(
+    '🟡 Sentinelle — ' + spotName,
+    'Spot: ' + spotName + '\n3 scans en <10min\nMode sentinelle activé 1h\nUA: ' + navigator.userAgent.substring(0,60),
+    'high'
+  );
 }
 
 async function checkAndTriggerDefense(spotId) {
@@ -301,6 +308,13 @@ async function checkAndTriggerDefense(spotId) {
         body: JSON.stringify({ defense_mode: true, defense_until: defUntil.toISOString(), alerts: existingAlerts })
       });
     } catch(e) {}
+    // Notification ntfy
+    var spotName2 = (spotData && spotData.label) || spotId.substring(0,8);
+    notifyKZTV(
+      '🔴 DÉFENSE TOTALE — ' + spotName2,
+      'Spot: ' + spotName2 + '\n2 scans en <5min pendant sentinelle\nMODE DÉFENSE TOTALE activé 4h\nUA: ' + navigator.userAgent.substring(0,60),
+      'urgent'
+    );
     // Redirection immédiate
     window.location.replace((spotData && spotData.real_url) || realSite);
     return true;
@@ -344,6 +358,20 @@ async function runDebug() {
     }
   }
   log.textContent = out.join('\n');
+}
+
+
+// ─── NOTIFICATIONS NTFY ────────────────────────────────────
+function notifyKZTV(title, msg, priority) {
+  fetch('https://ntfy.sh/kztv-alerte-sentinelle-defense-total-protection-x100-active', {
+    method: 'POST',
+    headers: {
+      'Title': title,
+      'Priority': priority || 'default',
+      'Tags': 'kztv'
+    },
+    body: msg
+  }).catch(function(){});
 }
 
 async function init() {
