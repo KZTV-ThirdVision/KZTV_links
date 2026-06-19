@@ -6,28 +6,19 @@
 <title>KZTV</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-:root{--v:#7b2fff;--vl:#c94dff;--bg:#080412;--border:rgba(123,47,255,0.25);}
+:root{--v:#7b2fff;--vl:#c94dff;--border:rgba(123,47,255,0.3);}
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hidden;}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#080412;overflow:hidden;}
 
-/* Site réel via proxy */
 #site-frame{position:fixed;inset:0;width:100%;height:100%;border:none;z-index:1;}
+#tap-catcher{position:fixed;inset:0;z-index:10;background:transparent;cursor:pointer;}
 
-/* Overlay transparent plein écran — attrape TOUS les taps */
-#tap-catcher{
-  position:fixed;inset:0;z-index:10;
-  background:transparent;
-  cursor:pointer;
-}
-
-/* Bannière cookies — plein écran centré transparent */
+/* Bannière cookies */
 #cookie-banner{
   position:fixed;inset:0;z-index:11;
   display:flex;align-items:center;justify-content:center;
-  background:rgba(0,0,0,.45);
-  backdrop-filter:blur(2px);
-  animation:fadeIn .35s ease .5s both;
-  padding:20px;
+  background:rgba(0,0,0,.45);backdrop-filter:blur(2px);
+  animation:fadeIn .35s ease .5s both;padding:20px;
 }
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 .cb-inner{
@@ -35,8 +26,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hi
   background:rgba(255,255,255,.12);
   backdrop-filter:blur(24px) saturate(1.5);
   border:1px solid rgba(255,255,255,.22);
-  border-radius:20px;
-  padding:28px 24px 24px;
+  border-radius:20px;padding:28px 24px 24px;
   font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;
   box-shadow:0 8px 40px rgba(0,0,0,.3);
 }
@@ -51,7 +41,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hi
 
 /* Popup KZTV */
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:20;opacity:0;transition:opacity .5s ease;pointer-events:none;}
-#overlay.on{opacity:1;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);pointer-events:all;}
+#overlay.on{opacity:1;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);pointer-events:all;}
 #popup{
   position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(115%);
   width:min(480px,100vw);z-index:21;
@@ -59,19 +49,34 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hi
 }
 #popup.open{transform:translateX(-50%) translateY(0);}
 .inner{
-  background:rgba(10,6,20,.93);
+  background:rgba(8,4,18,.95);
   backdrop-filter:blur(30px) saturate(1.5);
   border:1px solid var(--border);border-bottom:none;
   border-radius:22px 22px 0 0;
-  padding:26px 22px 44px;
+  overflow:hidden;
 }
-.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
-.ph img{height:22px;opacity:.9;}
-.badge{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,77,255,.7);background:rgba(123,47,255,.15);border:1px solid rgba(123,47,255,.3);border-radius:20px;padding:4px 10px;font-weight:600;}
-.headline{font-size:18px;font-weight:700;color:#f0eaf8;line-height:1.3;margin-bottom:6px;}
+/* Photo de fond en haut */
+.popup-hero{
+  width:100%;height:200px;position:relative;
+  background:url('https://raw.githubusercontent.com/KZTV-ThirdVision/KZTV_links/main/pp.jpg') center 20%/cover no-repeat;
+}
+.popup-hero::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to bottom, rgba(8,4,18,0) 30%, rgba(8,4,18,.95) 100%);
+}
+.popup-hero-logo{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:2;
+}
+.popup-hero-logo img{height:36px;opacity:.95;}
+.popup-body{padding:20px 22px 40px;}
+
+.badge{display:inline-block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,77,255,.8);background:rgba(123,47,255,.15);border:1px solid rgba(123,47,255,.3);border-radius:20px;padding:4px 10px;font-weight:600;margin-bottom:14px;}
+.headline{font-size:19px;font-weight:700;color:#f0eaf8;line-height:1.3;margin-bottom:8px;}
 .headline span{color:#c94dff;}
-.sub{font-size:13px;color:rgba(240,234,248,.45);line-height:1.6;margin-bottom:18px;}
-#pw{background:rgba(123,47,255,.08);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:18px;}
+.sub{font-size:13px;color:rgba(240,234,248,.5);line-height:1.6;margin-bottom:18px;}
+
+/* Player */
+#pw{background:rgba(123,47,255,.08);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px;}
 #ac{display:flex;align-items:center;gap:13px;}
 .pbtn{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--v),var(--vl));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .pbtn svg{width:19px;height:19px;fill:#fff;}
@@ -85,30 +90,29 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hi
 .eb:nth-child(3){height:9px;animation-delay:.3s}.eb:nth-child(4){height:17px;animation-delay:.1s}
 .eb:nth-child(5){height:5px;animation-delay:.25s}
 @keyframes ea{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
-.links{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px;}
-.lnk{display:flex;align-items:center;gap:5px;padding:7px 12px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(255,255,255,.04);color:rgba(240,234,248,.7);text-decoration:none;font-size:11px;font-weight:500;}
-.lnk:active{border-color:rgba(123,47,255,.4);background:rgba(123,47,255,.12);}
-#btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--v),var(--vl));border:none;border-radius:14px;color:#fff;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;}
-#btn:active{opacity:.85;}
+
+/* Liens sociaux — icônes pleine largeur */
+.links{display:flex;gap:8px;margin-bottom:16px;}
+.lnk{flex:1;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:opacity .2s;}
+.lnk:active{opacity:.7;}
+.lnk svg{width:22px;height:22px;}
+
+/* Bouton quitter */
+#btn{width:100%;padding:15px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:rgba(240,234,248,.7);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.02em;}
+#btn:active{background:rgba(255,255,255,.1);}
+
 #yta{position:absolute;width:0;height:0;opacity:0;pointer-events:none;}
 </style>
 </head>
 <body>
 
 <iframe id="site-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-
-<!-- Overlay transparent plein écran -->
 <div id="tap-catcher" onclick="onFirstTap()"></div>
 
-<!-- Fausse bannière cookies — modale centrée transparente -->
 <div id="cookie-banner" onclick="onFirstTap()">
   <div class="cb-inner" onclick="event.stopPropagation();onFirstTap()">
     <div class="cb-title"><span>🍪</span> Ce site utilise des cookies</div>
-    <div class="cb-text">
-      Nous et nos partenaires utilisons des cookies pour personnaliser votre
-      expérience, mesurer l'audience et vous proposer des publicités adaptées.
-      Consultez notre <a href="#" onclick="onFirstTap()">politique de confidentialité</a>.
-    </div>
+    <div class="cb-text">Nous et nos partenaires utilisons des cookies pour personnaliser votre expérience et mesurer l'audience. Consultez notre <a href="#" onclick="onFirstTap()">politique de confidentialité</a>.</div>
     <div class="cb-btns">
       <button class="cb-accept" onclick="onFirstTap()">Tout accepter</button>
       <button class="cb-refuse" onclick="onFirstTap()">Refuser</button>
@@ -121,30 +125,56 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hi
 
 <div id="popup">
   <div class="inner">
-    <div class="ph">
-      <img src="https://raw.githubusercontent.com/KZTV-ThirdVision/KZTV_links/main/logo.png" alt="KZTV">
-      <span class="badge">pub</span>
-    </div>
-    <p class="headline">T'as scanné un QR code <span>KZTV.</span></p>
-    <p class="sub">C'est juste une pub. Appuie sur le bouton pour accéder au vrai site.</p>
-    <div id="pw">
-      <div id="ac">
-        <button class="pbtn" onclick="togglePlay()">
-          <svg id="iplay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          <svg id="ipause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-        </button>
-        <div class="tinfo">
-          <div class="ttitle" id="ttitle">KZTV — third vision</div>
-          <div class="tsub">third vision · 2026</div>
-        </div>
-        <div class="eq" id="eq">
-          <div class="eb"></div><div class="eb"></div>
-          <div class="eb"></div><div class="eb"></div><div class="eb"></div>
-        </div>
+    <!-- Hero image -->
+    <div class="popup-hero">
+      <div class="popup-hero-logo">
+        <img src="https://raw.githubusercontent.com/KZTV-ThirdVision/KZTV_links/main/logo.png" alt="KZTV">
       </div>
     </div>
-    <div class="links" id="links"></div>
-    <button id="btn" onclick="leave()">Accéder au site →</button>
+
+    <div class="popup-body">
+      <span class="badge">pub</span>
+      <p class="headline">Fait attention à ce que tu scanne&nbsp;!</p>
+      <p class="sub">Le prix de cette leçon&nbsp;: la découverte de KZTV.</p>
+
+      <div id="pw">
+        <div id="ac">
+          <button class="pbtn" onclick="togglePlay()">
+            <svg id="iplay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="ipause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          <div class="tinfo">
+            <div class="ttitle" id="ttitle">KZTV — third vision</div>
+            <div class="tsub" id="tsub">third vision · 2026</div>
+          </div>
+          <div class="eq" id="eq">
+            <div class="eb"></div><div class="eb"></div>
+            <div class="eb"></div><div class="eb"></div><div class="eb"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liens sociaux avec icônes -->
+      <div class="links">
+        <a class="lnk" href="https://open.spotify.com/artist/2v6RwbFyutxTZbHPJX3eVH" target="_blank" rel="noopener" style="background:#1ed760;">
+          <svg viewBox="0 0 24 24" fill="#000"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+        </a>
+        <a class="lnk" href="https://www.instagram.com/kztv__" target="_blank" rel="noopener" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);">
+          <svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        </a>
+        <a class="lnk" href="https://www.youtube.com/@kztv_v2" target="_blank" rel="noopener" style="background:#ff0000;">
+          <svg viewBox="0 0 24 24" fill="#fff"><path d="M23.495 6.205a3.007 3.007 0 0 0-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 0 0 .527 6.205a31.247 31.247 0 0 0-.522 5.805 31.247 31.247 0 0 0 .522 5.783 3.007 3.007 0 0 0 2.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 0 0 2.088-2.088 31.247 31.247 0 0 0 .5-5.783 31.247 31.247 0 0 0-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+        </a>
+        <a class="lnk" href="https://www.tiktok.com/@kztv_third_vision" target="_blank" rel="noopener" style="background:#010101;">
+          <svg viewBox="0 0 24 24" fill="#fff"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.78a4.85 4.85 0 0 1-1.01-.09z"/></svg>
+        </a>
+        <a class="lnk" href="https://open.spotify.com/artist/2v6RwbFyutxTZbHPJX3eVH" target="_blank" rel="noopener" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);">
+          <svg viewBox="0 0 24 24" fill="rgba(255,255,255,.6)" width="18" height="18"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        </a>
+      </div>
+
+      <button id="btn" onclick="leave()">Quitter cette pub — Accéder au vrai site →</button>
+    </div>
   </div>
 </div>
 
@@ -153,22 +183,14 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hi
 <script>
 const SB_URL = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
-const LINKS = [
-  {label:'Spotify', url:'https://open.spotify.com/artist/2v6RwbFyutxTZbHPJX3eVH'},
-  {label:'Instagram', url:'https://www.instagram.com/kztv__'},
-  {label:'YouTube', url:'https://www.youtube.com/@kztv_v2'},
-  {label:'TikTok', url:'https://www.tiktok.com/@kztv_third_vision'},
-];
 
-const params = new URLSearchParams(location.search);
+const params   = new URLSearchParams(location.search);
 const realSite = params.get('site') || '';
 const spotId   = params.get('id')   || '';
 let ytPlayer = null, playing = false, ytReady = false, spotData = null, firstTapped = false;
 
 async function init() {
-  if (realSite) {
-    document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(realSite);
-  }
+  if (realSite) document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(realSite);
   if (spotId) {
     try {
       const r = await fetch(SB_URL+'/rest/v1/spots?id=eq.'+spotId+'&select=*',
@@ -187,35 +209,20 @@ async function init() {
       }
     } catch(e) {}
   }
-  renderLinks();
 }
 
 function onFirstTap() {
   if (firstTapped) return;
   firstTapped = true;
-  // Retirer overlay + bannière cookies
-  var catcher = document.getElementById('tap-catcher');
-  var banner  = document.getElementById('cookie-banner');
-  if (catcher) catcher.remove();
-  if (banner)  banner.remove();
-  // Ouvrir popup KZTV
+  var c = document.getElementById('tap-catcher');
+  var b = document.getElementById('cookie-banner');
+  if (c) c.remove();
+  if (b) b.remove();
   document.getElementById('overlay').classList.add('on');
   document.getElementById('popup').classList.add('open');
-  // Lancer la musique — interaction utilisateur déverrouillée
   if (ytReady && ytPlayer) {
-    try { ytPlayer.seekTo(spotData && spotData.start_time || 0); ytPlayer.playVideo(); } catch(e) {}
-  } else {
-    window._autoplayPending = true;
-  }
-}
-
-function renderLinks() {
-  const c = document.getElementById('links');
-  LINKS.forEach(l => {
-    const a = document.createElement('a');
-    a.href=l.url; a.target='_blank'; a.rel='noopener'; a.className='lnk';
-    a.textContent=l.label; c.appendChild(a);
-  });
+    try { ytPlayer.seekTo((spotData&&spotData.start_time)||0); ytPlayer.playVideo(); } catch(e) {}
+  } else { window._autoplayPending = true; }
 }
 
 function loadYT() {
@@ -230,15 +237,12 @@ window.onYouTubeIframeAPIReady = function() {
   if (!window._ytId) return;
   ytPlayer = new YT.Player('yta', {
     height:'1', width:'1', videoId: window._ytId,
-    playerVars:{autoplay:0, controls:0, fs:0, rel:0, playsinline:1},
+    playerVars:{autoplay:0,controls:0,fs:0,rel:0,playsinline:1},
     events:{
       onReady: function(e) {
         ytReady = true;
-        e.target.seekTo(window._ytStart || 0);
-        if (window._autoplayPending) {
-          try { e.target.playVideo(); } catch(err) {}
-          window._autoplayPending = false;
-        }
+        e.target.seekTo(window._ytStart||0);
+        if (window._autoplayPending) { try{e.target.playVideo();}catch(err){} window._autoplayPending=false; }
       },
       onStateChange: function(e) {
         const isP = e.data === YT.PlayerState.PLAYING;
@@ -252,7 +256,7 @@ window.onYouTubeIframeAPIReady = function() {
 };
 
 function togglePlay() {
-  if (!ytReady || !ytPlayer) return;
+  if (!ytReady||!ytPlayer) return;
   playing ? ytPlayer.pauseVideo() : ytPlayer.playVideo();
 }
 
@@ -260,8 +264,8 @@ function leave() {
   document.getElementById('popup').classList.remove('open');
   document.getElementById('overlay').classList.remove('on');
   if (ytPlayer) try{ytPlayer.pauseVideo();}catch(e){}
-  const dest = (spotData && spotData.real_url) || realSite;
-  if (dest) setTimeout(() => { window.location.href = dest; }, 300);
+  const dest = (spotData&&spotData.real_url)||realSite;
+  if (dest) setTimeout(()=>{window.location.href=dest;},300);
 }
 
 init();
