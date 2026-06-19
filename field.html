@@ -113,6 +113,7 @@ var _editPhotoData = null;
 
 function openEdit(spot) {
   _editSpotId = spot.id;
+  _qrSpotData = spot;
   _editStartMin = 0; _editStartSec = 0;
   _editPhotoData = null;
 
@@ -250,6 +251,133 @@ async function saveEdit() {
   btn.disabled=false; btn.textContent='Enregistrer';
 }
 
+
+// ─── QR CODE ──────────────────────────────────────────────
+var _qrSpotData = null;
+
+function loadQRLib(cb) {
+  if (window.QRCode) { cb(); return; }
+  var s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  s.onload = cb;
+  s.onerror = function(){ notif('Erreur chargement lib QR','er'); };
+  document.head.appendChild(s);
+}
+
+function generateQR(spotUrl, sizeCm) {
+  // 300 DPI : px = cm / 2.54 * 300
+  var px = Math.round((sizeCm / 2.54) * 300);
+  px = Math.max(200, Math.min(1200, px)); // sécurité min/max
+
+  document.getElementById('qr-size-label').textContent =
+    sizeCm.toFixed(1) + ' cm × ' + sizeCm.toFixed(1) + ' cm — ' + px + 'px @ 300dpi';
+
+  var wrap = document.getElementById('qr-canvas-wrap');
+  wrap.innerHTML = '<canvas id="qr-canvas"></canvas>';
+
+  loadQRLib(function() {
+    new QRCode(document.getElementById('qr-canvas'), {
+      text: spotUrl,
+      width: px,
+      height: px,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    // Redimensionner l'affichage (garder l'original pour l'export)
+    setTimeout(function() {
+      var cvs = wrap.querySelector('canvas') || wrap.querySelector('img');
+      if (cvs) {
+        cvs.style.maxWidth = '240px';
+        cvs.style.maxHeight = '240px';
+        cvs.style.width = 'auto';
+        cvs.style.height = 'auto';
+      }
+    }, 100);
+  });
+
+  document.getElementById('qr-overlay').classList.add('on');
+  document.getElementById('qr-sheet').classList.add('open');
+}
+
+function openQRFromGenerated() {
+  if (!_qrSpotData) return;
+  var url = 'https://kztv-links-dusky.vercel.app/q?site=' + encodeURIComponent(_qrSpotData.real_url||'') + '&id=' + _qrSpotData.id;
+  var sizeCm = (_qrSpotData.qr_size_cm || 3) - 0.2; // enlever la marge ajoutée
+  generateQR(url, sizeCm + 0.2);
+}
+
+function openQRFromEdit() {
+  if (!_editSpotId) return;
+  // Récupérer les données depuis le modal ouvert
+  var url = document.getElementById('edit-url').value;
+  var qrUrl = 'https://kztv-links-dusky.vercel.app/q?site=' + encodeURIComponent(url) + '&id=' + _editSpotId;
+  // Taille par défaut 3.2cm si pas dispo
+  var sizeCm = (_qrSpotData && _qrSpotData.qr_size_cm) ? _qrSpotData.qr_size_cm : 3.2;
+  generateQR(qrUrl, sizeCm);
+}
+
+function closeQR() {
+  document.getElementById('qr-overlay').classList.remove('on');
+  document.getElementById('qr-sheet').classList.remove('open');
+}
+
+function shareQR() {
+  var wrap = document.getElementById('qr-canvas-wrap');
+  var cvs = wrap.querySelector('canvas');
+  if (!cvs) {
+    // QRCode génère parfois une img
+    var img = wrap.querySelector('img');
+    if (img) {
+      var c2 = document.createElement('canvas');
+      c2.width = img.naturalWidth || img.width;
+      c2.height = img.naturalHeight || img.height;
+      c2.getContext('2d').drawImage(img, 0, 0);
+      cvs = c2;
+    }
+  }
+  if (!cvs) { notif('QR non prêt','er'); return; }
+
+  cvs.toBlob(function(blob) {
+    var fname = 'kztv-qr-' + ((_qrSpotData && _qrSpotData.label) || 'spot').replace(/[^a-z0-9]/gi,'-').toLowerCase() + '.png';
+    if (navigator.share && navigator.canShare && navigator.canShare({files:[new File([blob],'x.png',{type:'image/png'})]})) {
+      var file = new File([blob], fname, {type:'image/png'});
+      navigator.share({files:[file], title:'QR Code KZTV'})
+        .catch(function(){});
+    } else {
+      // Fallback : téléchargement direct
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fname;
+      a.click();
+    }
+  }, 'image/png');
+}
+
+// Countdown 5s après création spot
+var _qrCountTimer = null;
+function startQRCountdown(spotData) {
+  _qrSpotData = spotData;
+  var btn = document.getElementById('qr-quick-btn');
+  var cd = document.getElementById('qr-countdown');
+  var cnt = document.getElementById('qr-cnt');
+  if (!btn) return;
+  btn.style.display = 'inline-block';
+  cd.style.display = 'block';
+  var n = 5;
+  cnt.textContent = n;
+  if (_qrCountTimer) clearInterval(_qrCountTimer);
+  _qrCountTimer = setInterval(function() {
+    n--;
+    cnt.textContent = n;
+    if (n <= 0) {
+      clearInterval(_qrCountTimer);
+      btn.style.display = 'none';
+      cd.style.display = 'none';
+    }
+  }, 1000);
+}
+
 </script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -327,6 +455,18 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 .ci{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px;margin-bottom:12px;}
 .cl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:6px;}
 .cv{font-size:14px;color:#f0eaf8;}
+
+.qr-confirm{background:rgba(30,215,96,.08);border:1px solid rgba(30,215,96,.25);border-radius:14px;padding:16px;margin-top:12px;display:none;}
+.qr-confirm.show{display:block;}
+.qr-count{font-size:12px;color:rgba(240,234,248,.4);text-align:center;margin-top:8px;}
+.qr-count span{color:#1ed760;font-weight:700;}
+/* QR Modal */
+#qr-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;display:flex;align-items:flex-end;justify-content:center;}
+#qr-overlay.on{opacity:1;pointer-events:all;}
+#qr-sheet{background:#0d0820;border-radius:20px 20px 0 0;border:1px solid rgba(255,255,255,.08);width:min(480px,100%);padding:24px 24px calc(40px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .4s cubic-bezier(.16,1,.3,1);}
+#qr-sheet.open{transform:translateY(0);}
+#qr-canvas-wrap{background:#fff;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:center;margin:16px 0;}
+#qr-canvas-wrap canvas{display:block;}
 
 #notif{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(8,4,18,.95);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:10px 20px;font-size:13px;color:rgba(240,234,248,.6);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 #notif.show{opacity:1;}.notif-ok{color:#1ed760!important;border-color:rgba(30,215,96,.3)!important;}.notif-er{color:#ff4d6d!important;border-color:rgba(255,77,100,.3)!important;}
@@ -449,7 +589,14 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
       <input type="hidden" id="sp-yt-id" value="">
     </div>
     <button class="cta" onclick="generate()">Générer + sauvegarder</button>
-    <div id="urlbox"><div class="ut" id="gen-url"></div><button class="cpbtn" onclick="copyUrl()">Copier le lien</button></div>
+    <div id="urlbox">
+      <div class="ut" id="gen-url"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="cpbtn" onclick="copyUrl()">🔗 Copier le lien</button>
+        <button class="cpbtn" id="qr-quick-btn" onclick="openQRFromGenerated()" style="background:rgba(30,215,96,.1);border-color:rgba(30,215,96,.3);color:#1ed760;display:none;">📱 Générer le QR code</button>
+      </div>
+      <div class="qr-count" id="qr-countdown" style="display:none;">QR disponible encore <span id="qr-cnt">5</span>s</div>
+    </div>
   </div>
 
   <!-- SPOTS -->
@@ -474,6 +621,20 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 </div>
 
 <div id="notif"></div>
+
+<!-- QR CODE MODAL -->
+<div id="qr-overlay" onclick="closeQR()">
+  <div id="qr-sheet" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div style="font-size:16px;font-weight:700;color:#f0eaf8;">QR Code</div>
+      <button onclick="closeQR()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:rgba(240,234,248,.6);font-size:18px;cursor:pointer;font-family:'Inter',sans-serif;">✕</button>
+    </div>
+    <div style="font-size:12px;color:rgba(240,234,248,.35);margin-bottom:4px;" id="qr-size-label"></div>
+    <div id="qr-canvas-wrap"><canvas id="qr-canvas"></canvas></div>
+    <button class="cta" onclick="shareQR()" id="qr-share-btn">📥 Télécharger / Partager</button>
+    <div style="font-size:11px;color:rgba(240,234,248,.3);text-align:center;margin-top:10px;">PNG haute résolution — prêt à imprimer</div>
+  </div>
+</div>
 
 <!-- EDIT SPOT MODAL -->
 <div id="edit-overlay" onclick="closeEdit()"></div>
@@ -542,6 +703,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     <input type="hidden" id="edit-start-val" value="0">
   </div>
 
+  <button class="cta sec" onclick="openQRFromEdit()" style="margin-bottom:10px;">📱 Générer le QR code</button>
   <button class="cta" onclick="saveEdit()" id="edit-save-btn">Enregistrer</button>
 </div>
 
@@ -738,6 +900,7 @@ async function generate() {
     document.getElementById('gen-url').textContent=genUrl;
     document.getElementById('urlbox').style.display='block';
     notif('Sauvegardé ✓','ok');
+    if(d[0]) startQRCountdown(d[0]);
   }catch(e){notif('Erreur: '+e.message,'er');}
 }
 function copyUrl(){navigator.clipboard.writeText(genUrl).then(()=>notif('Copié ✓','ok')).catch(()=>notif('Erreur copie','er'));}
