@@ -651,6 +651,12 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
       <div style="font-size:13px;color:rgba(240,234,248,.4);margin-bottom:12px;">Cache local sur cet iPhone. Rafraîchis quand tu sors une nouvelle vidéo.</div>
       <button class="cta sec" onclick="refreshYouTubeVideos(this)">Rafraîchir les vidéos YouTube</button>
     </div>
+    <div style="margin-top:20px;">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:8px;">Sous-titre du player dans la pub</div>
+      <div style="font-size:13px;color:rgba(240,234,248,.4);margin-bottom:10px;">Ligne sous le nom du son (ex: "third vision · 2026")</div>
+      <div class="fld"><input type="text" id="conf-tsub" placeholder="third vision · 2026" style="font-size:16px;"></div>
+      <button class="cta sec" onclick="saveConfTsub()">Enregistrer</button>
+    </div>
   </div>
 </div>
 
@@ -959,7 +965,7 @@ async function generate() {
   var trkTitle = document.getElementById('sp-trk').value || null;
   var ytId = document.getElementById('sp-yt-id').value || null;
   try{
-    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',start_time:parseInt(document.getElementById('sp-delay').value)||0,scans_count:0,photo_data:_newSpotPhoto||null})});
+    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',start_time:parseInt(document.getElementById('sp-delay').value)||0,scans_count:0,photo_data:_newSpotPhoto||null,player_subtitle:localStorage.getItem('kztv_tsub')||null})});
     var d=await r.json();
     if(!r.ok)throw new Error(d.message||'err');
     genUrl=BASE+'?site='+encodeURIComponent(url)+'&id='+d[0].id;
@@ -1026,6 +1032,16 @@ function savePin(){
   var v=document.getElementById('new-pin').value.trim();
   if(!/^\d{4}$/.test(v)){notif('4 chiffres requis','er');return;}
   localStorage.setItem('kztv_pin',v);notif('PIN mis à jour ✓','ok');
+}
+function saveConfTsub(){
+  var v=document.getElementById('conf-tsub').value.trim();
+  localStorage.setItem('kztv_tsub', v);
+  notif('Sous-titre mis à jour ✓','ok');
+}
+function loadConfTsub(){
+  var v=localStorage.getItem('kztv_tsub')||'';
+  var el=document.getElementById('conf-tsub');
+  if(el && v) el.value=v;
 }
 
 // NOTIF
