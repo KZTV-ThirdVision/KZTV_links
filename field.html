@@ -25,7 +25,7 @@ function tab(t) {
   for (var j=0;j<panels.length;j++) panels[j].className = 'panel';
   var target = document.getElementById('p-'+t);
   if (target) target.className = 'panel on';
-  if (t==='spots' && typeof loadSpots === 'function') loadSpots();
+  if (t==='spots' && typeof loadSpots === 'function') loadSpots(); // toujours recharger
   if (t==='config' && typeof loadConfTsub === 'function') { loadConfTsub(); loadConfDomain(); }
   if (t==='scanner') {
     if (typeof loadYouTubeVideos === 'function' && typeof ytVideos !== 'undefined' && ytVideos.length===0) loadYouTubeVideos();
@@ -626,14 +626,13 @@ async function disableDefense() {
 
 async function fullReset() {
   if (!_alertSpot) return;
-  if (!confirm('Réinitialiser complètement ce spot ? (défense + sentinelle + alertes + localStorage)')) return;
   await fetch(SB+'/rest/v1/spots?id=eq.'+_alertSpot.id, {
     method:'PATCH',
     headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
     body:JSON.stringify({defense_mode:false, defense_until:null, sentinelle_until:null, alerts:[]})
   });
   clearLocalFuse(_alertSpot.id);
-  notif('Spot réinitialisé ✓','ok');
+  notif('Reset total effectué ✓','ok');
   closeAlerts();
   loadSpots();
 }
@@ -646,7 +645,6 @@ function clearLocalFuse(spotId) {
 }
 
 function clearAllLocalFuses() {
-  // Vider TOUS les fusibles locaux (pour les tests admin)
   var toDelete = [];
   for (var i = 0; i < localStorage.length; i++) {
     var k = localStorage.key(i);
@@ -655,7 +653,9 @@ function clearAllLocalFuses() {
     }
   }
   toDelete.forEach(function(k){ localStorage.removeItem(k); });
-  notif(toDelete.length + ' fusible(s) local(aux) effacé(s) ✓','ok');
+  // Note : efface uniquement la mémoire de CE navigateur (pas Chrome si déclenché depuis Chrome)
+  // Pour reset complet → utiliser le bouton 🔄 dans le panneau 🛡️ du spot
+  notif(toDelete.length > 0 ? toDelete.length+' fusible(s) effacé(s) — pour Chrome: reset via 🛡️' : 'Rien à effacer ici — reset via 🛡️ dans Spots','ok');
 }
 
 </script>
@@ -975,10 +975,11 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 <!-- ALERTES MODAL -->
 <div id="alert-overlay" onclick="closeAlerts()"></div>
 <div id="alert-sheet">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
     <div style="font-size:15px;font-weight:700;color:#f0eaf8;" id="alert-sheet-title">Alertes du spot</div>
     <button onclick="closeAlerts()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:rgba(240,234,248,.6);font-size:18px;cursor:pointer;">✕</button>
   </div>
+  <button onclick="fullReset()" style="width:100%;padding:12px;background:rgba(123,47,255,.15);border:1px solid rgba(123,47,255,.3);border-radius:12px;color:#c94dff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px;touch-action:manipulation;">🔄 Reset total — Repartir à zéro</button>
   <div id="alert-defense-status" style="display:none;background:rgba(255,77,100,.1);border:1px solid rgba(255,77,100,.3);border-radius:12px;padding:14px;margin-bottom:14px;">
     <div style="font-size:13px;font-weight:700;color:#ff4d6d;margin-bottom:6px;">🛡️ MODE DÉFENSE TOTALE ACTIF</div>
     <div style="font-size:12px;color:rgba(240,234,248,.6);" id="alert-defense-until"></div>
