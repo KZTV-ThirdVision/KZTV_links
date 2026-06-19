@@ -644,18 +644,27 @@ function clearLocalFuse(spotId) {
   localStorage.removeItem('kztv_sent_scan_' + spotId);
 }
 
-function toggleGodMode() {
-  var active = localStorage.getItem('kztv_god_mode') === 'true';
+async function toggleGodMode() {
+  var btn = document.getElementById('god-mode-tog');
+  var active = btn && btn.classList.contains('on');
   var newState = !active;
-  localStorage.setItem('kztv_god_mode', String(newState));
-  var btn = document.getElementById('god-mode-tog');
+  await fetch(SB+'/rest/v1/settings?key=eq.god_mode', {
+    method:'PATCH',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({value: String(newState), updated_at: new Date().toISOString()})
+  });
   if (btn) btn.className = 'tog ' + (newState ? 'on' : 'off');
-  notif(newState ? '⚡ Mode Dieu ON — fusibles désactivés' : 'Mode Dieu OFF — fusibles actifs', 'ok');
+  notif(newState ? '⚡ Mode Dieu ON — fusibles désactivés partout' : 'Mode Dieu OFF — fusibles actifs', 'ok');
 }
-function loadGodMode() {
-  var active = localStorage.getItem('kztv_god_mode') === 'true';
-  var btn = document.getElementById('god-mode-tog');
-  if (btn) btn.className = 'tog ' + (active ? 'on' : 'off');
+async function loadGodMode() {
+  try {
+    var r = await fetch(SB+'/rest/v1/settings?key=eq.god_mode&select=value',
+      {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
+    var d = await r.json();
+    var active = d && d[0] && d[0].value === 'true';
+    var btn = document.getElementById('god-mode-tog');
+    if (btn) btn.className = 'tog ' + (active ? 'on' : 'off');
+  } catch(e) {}
 }
 function clearAllLocalFuses() {
   var toDelete = [];
