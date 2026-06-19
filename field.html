@@ -1236,11 +1236,6 @@ async function loadSpots(){
       tog.setAttribute('data-active',String(s.active));
       tog.onclick=function(e){
         e.stopPropagation();
-        var newA = this.dataset.active==='true' ? false : true;
-        this.dataset.active = String(newA);
-        this.className='tog '+(newA?'on':'off');
-        var sc = this.parentNode.querySelector('.ss');
-        if(sc){ sc.className='ss '+(newA?'active':'inactive'); }
         togSpot(this);
       };
 
@@ -1253,9 +1248,17 @@ async function loadSpots(){
   }catch(e){l.innerHTML='<div class="empty">Erreur</div>';}
 }
 async function togSpot(btn){
-  var newA=btn.dataset.active==='true'?false:true;
-  btn.className='tog '+(newA?'on':'off');btn.dataset.active=newA;
-  await fetch(SB+'/rest/v1/spots?id=eq.'+btn.dataset.id,{method:'PATCH',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({active:newA})});
+  var newA = btn.dataset.active==='true' ? false : true;
+  btn.className='tog '+(newA?'on':'off');
+  btn.dataset.active = String(newA);
+  // Mettre à jour la couleur du compteur scans (parent .ss)
+  var sc = btn.parentNode ? btn.parentNode.querySelector('.ss') : null;
+  if(sc) sc.className = 'ss '+(newA?'active':'inactive');
+  await fetch(SB+'/rest/v1/spots?id=eq.'+btn.dataset.id,{
+    method:'PATCH',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({active:newA})
+  });
   notif(newA?'Activé ✓':'Désactivé','ok');
 }
 
