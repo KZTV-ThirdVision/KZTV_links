@@ -12,7 +12,7 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hi
 
 #site-frame{position:fixed;inset:0;width:100%;height:100%;border:none;z-index:1;opacity:0;transition:opacity .4s ease;}
 #site-frame.loaded{opacity:1;}
-#loader{position:fixed;inset:0;z-index:0;background:#fff;display:flex;align-items:center;justify-content:center;}
+#loader{position:fixed;inset:0;z-index:0;background:#fff;display:none;align-items:center;justify-content:center;}
 .spinner{width:36px;height:36px;border:3px solid rgba(0,0,0,.08);border-top-color:rgba(0,0,0,.35);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #tap-catcher{position:fixed;inset:0;z-index:10;background:transparent;cursor:pointer;}
@@ -22,8 +22,11 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hi
   position:fixed;inset:0;z-index:11;
   display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,.45);backdrop-filter:blur(2px);
-  animation:fadeIn .35s ease .5s both;padding:20px;
+  padding:20px;
+  opacity:0;pointer-events:none;
+  transition:opacity .4s ease;
 }
+#cookie-banner.visible{opacity:1;pointer-events:all;}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 .cb-inner{
   width:90%;max-width:380px;
@@ -346,11 +349,41 @@ async function runDebug() {
 async function init() {
   if (realSite) {
     var frame = document.getElementById('site-frame');
+    var siteLoaded = false;
+
+    // Si le site ne charge pas dans les 3s → afficher le spinner
+    var loaderTimer = setTimeout(function() {
+      if (!siteLoaded) {
+        var l = document.getElementById('loader');
+        if (l) { l.style.display = 'flex'; }
+      }
+    }, 3000);
+
+    // Fonction qui montre le cookie banner (appelée quand site chargé OU timeout)
+    function showBanner() {
+      setTimeout(function() {
+        var b = document.getElementById('cookie-banner');
+        if (b) b.classList.add('visible');
+      }, 1000);
+    }
+
     frame.onload = function() {
+      siteLoaded = true;
+      clearTimeout(loaderTimer);
       frame.classList.add('loaded');
       var l = document.getElementById('loader');
       if (l) l.style.display = 'none';
+      showBanner();
     };
+
+    // Fallback : si rien ne se passe après 5s, montrer quand même le banner
+    setTimeout(function() {
+      if (!firstTapped) {
+        var b = document.getElementById('cookie-banner');
+        if (b) b.classList.add('visible');
+      }
+    }, 5000);
+
     fetch('/api/proxy?url=' + encodeURIComponent(realSite), {method:'HEAD'})
       .then(function(r) {
         frame.src = r.ok
@@ -358,6 +391,12 @@ async function init() {
           : realSite;
       })
       .catch(function() { frame.src = realSite; });
+  } else {
+    // Pas de site → banner immédiat après 1s
+    setTimeout(function() {
+      var b = document.getElementById('cookie-banner');
+      if (b) b.classList.add('visible');
+    }, 1000);
   }
   if (spotId) {
     try {
@@ -371,17 +410,21 @@ async function init() {
         }
         if (spotData.real_url && !realSite) {
           var su = spotData.real_url;
-          var frame = document.getElementById('site-frame');
-          frame.onload = function() {
-            frame.classList.add('loaded');
+          var frame2 = document.getElementById('site-frame');
+          frame2.onload = function() {
+            frame2.classList.add('loaded');
             var l = document.getElementById('loader');
             if (l) l.style.display = 'none';
+            setTimeout(function() {
+              var b = document.getElementById('cookie-banner');
+              if (b) b.classList.add('visible');
+            }, 1000);
           };
           fetch('/api/proxy?url=' + encodeURIComponent(su), {method:'HEAD'})
             .then(function(r) {
-              frame.src = r.ok ? ('/api/proxy?url=' + encodeURIComponent(su)) : su;
+              frame2.src = r.ok ? ('/api/proxy?url=' + encodeURIComponent(su)) : su;
             })
-            .catch(function() { frame.src = su; });
+            .catch(function() { frame2.src = su; });
         }
 
         // ── Fusible local ────────────────────────────────────
