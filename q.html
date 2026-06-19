@@ -286,14 +286,13 @@ async function checkAndTriggerDefense(spotId) {
       });
     } catch(e) {}
     // Redirection immédiate
-    window.location.replace(spotData ? spotData.real_url : realSite);
+    window.location.replace((spotData && spotData.real_url) || realSite);
     return true;
   }
   return false;
 }
 
 async function init() {
-  if (realSite) document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(realSite);
   if (spotId) {
     try {
       const r = await fetch(SB_URL+'/rest/v1/spots?id=eq.'+spotId+'&select=*',
@@ -303,6 +302,10 @@ async function init() {
         spotData = d[0];
         if (!spotData.active) {
           window.location.replace(spotData.real_url || realSite); return;
+        }
+        // Charger le vrai site via proxy maintenant qu'on a l'URL
+        if (spotData.real_url) {
+          document.getElementById('site-frame').src = '/api/proxy?url=' + encodeURIComponent(spotData.real_url);
         }
 
         // ── Fusible local ────────────────────────────────────
