@@ -81,8 +81,8 @@ export default async function handler(req, res) {
     await patchSpot(spot.id, { defense_mode: false, defense_until: null });
   }
 
-  // ── 4. Rediriger vers notre popup avec paramètres courts ─────
-  const popupUrl = `/q?id=${spot.id}`;
+  // ── 4. Rediriger vers notre popup — inclure site= pour chargement immédiat de l'iframe
+  const popupUrl = `/q?id=${spot.id}&site=${encodeURIComponent(spot.real_url || '')}`;
   res.setHeader('Referrer-Policy', 'no-referrer');
   return res.redirect(302, popupUrl);
 }
