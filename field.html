@@ -26,7 +26,7 @@ function tab(t) {
   var target = document.getElementById('p-'+t);
   if (target) target.className = 'panel on';
   if (t==='spots' && typeof loadSpots === 'function') loadSpots();
-  if (t==='config' && typeof loadConfTsub === 'function') loadConfTsub();
+  if (t==='config' && typeof loadConfTsub === 'function') { loadConfTsub(); loadConfDomain(); }
   if (t==='scanner' && typeof loadYouTubeVideos === 'function' && typeof ytVideos !== 'undefined' && ytVideos.length===0) loadYouTubeVideos();
 }
 
@@ -310,33 +310,31 @@ function generateQR(spotUrl, sizeCm) {
 }
 
 function openQRFromEdit() {
-  var url = document.getElementById('edit-url').value;
-  if (!url) { notif('URL manquante', 'er'); return; }
-  // Réutiliser l'URL QR déjà générée si elle existe
-  var qrUrl = (_qrSpotData && _qrSpotData.qr_url)
-    ? _qrSpotData.qr_url
-    : 'https://kztv-links-dusky.vercel.app/q?site=' + encodeURIComponent(url) + '&id=' + (_editSpotId || '');
-  // Sauvegarder dans Supabase si nouvelle URL
-  if (_editSpotId && !(_qrSpotData && _qrSpotData.qr_url)) {
+  if (!_qrSpotData) { notif('Spot introuvable', 'er'); return; }
+  // URL courte via /api/scan?id=SHORT_ID
+  var base = localStorage.getItem('kztv_domain') || 'https://kztv-links-dusky.vercel.app';
+  var qrUrl = base + '/api/scan?id=' + (_qrSpotData.short_id || _qrSpotData.id);
+  // Sauvegarder qr_url si pas encore fait
+  if (!_qrSpotData.qr_url) {
     var SB='https://bkqdhndjmpwdtcelrdit.supabase.co';
     var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
-    fetch(SB+'/rest/v1/spots?id=eq.'+_editSpotId, {
+    fetch(SB+'/rest/v1/spots?id=eq.'+_qrSpotData.id, {
       method:'PATCH',
       headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
       body:JSON.stringify({qr_url: qrUrl})
     });
-    if (_qrSpotData) _qrSpotData.qr_url = qrUrl;
+    _qrSpotData.qr_url = qrUrl;
   }
-  var sizeCm = (_qrSpotData && _qrSpotData.qr_size_cm) ? parseFloat(_qrSpotData.qr_size_cm) : 3.2;
+  var sizeCm = _qrSpotData.qr_size_cm ? parseFloat(_qrSpotData.qr_size_cm) : 3.2;
   generateQR(qrUrl, sizeCm);
 }
 
 function openQRFromGenerated() {
   if (!_qrSpotData) { notif('Spot introuvable', 'er'); return; }
-  var qrUrl = _qrSpotData.qr_url
-    || ('https://kztv-links-dusky.vercel.app/q?site=' + encodeURIComponent(_qrSpotData.real_url || '') + '&id=' + _qrSpotData.id);
+  var base = localStorage.getItem('kztv_domain') || 'https://kztv-links-dusky.vercel.app';
+  var qrUrl = _qrSpotData.qr_url || (base + '/api/scan?id=' + (_qrSpotData.short_id || _qrSpotData.id));
   var sizeCm = _qrSpotData.qr_size_cm ? parseFloat(_qrSpotData.qr_size_cm) : 3.2;
-  window._qrFromNew = true; // marquer comme venant d'un nouveau spot
+  window._qrFromNew = true;
   generateQR(qrUrl, sizeCm);
 }
 
@@ -797,6 +795,12 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     <div class="fld"><label>Changer le PIN (4 chiffres)</label><input type="number" id="new-pin" placeholder="1234"></div>
     <button class="cta sec" onclick="savePin()">Enregistrer le PIN</button>
     <div class="ci" style="margin-top:16px"><div class="cl">Supabase</div><div class="cv" style="font-size:11px;color:rgba(240,234,248,.3)">bkqdhndjmpwdtcelrdit</div></div>
+    <div style="margin-top:16px;">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:8px;">Domaine des QR codes</div>
+      <div style="font-size:13px;color:rgba(240,234,248,.4);margin-bottom:10px;">Remplace vercel.app par ton domaine perso une fois acheté.</div>
+      <div class="fld"><input type="text" id="conf-domain" placeholder="https://kztv-links-dusky.vercel.app" style="font-size:16px;"></div>
+      <button class="cta sec" onclick="saveConfDomain()">Enregistrer le domaine</button>
+    </div>
     <div style="margin-top:20px;">
       <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:8px;">Vidéos YouTube</div>
       <div style="font-size:13px;color:rgba(240,234,248,.4);margin-bottom:12px;">Cache local sur cet iPhone. Rafraîchis quand tu sors une nouvelle vidéo.</div>
@@ -1272,6 +1276,17 @@ function saveConfTsub(){
   var v=document.getElementById('conf-tsub').value.trim();
   localStorage.setItem('kztv_tsub', v);
   notif('Sous-titre mis à jour ✓','ok');
+}
+function saveConfDomain(){
+  var v=document.getElementById('conf-domain').value.trim().replace(/\/+$/,'');
+  if(v && !v.startsWith('http')){ notif('URL invalide (doit commencer par https://)','er'); return; }
+  localStorage.setItem('kztv_domain', v||'');
+  notif('Domaine mis à jour ✓','ok');
+}
+function loadConfDomain(){
+  var v=localStorage.getItem('kztv_domain')||'';
+  var el=document.getElementById('conf-domain');
+  if(el) el.value=v;
 }
 function loadConfTsub(){
   var v=localStorage.getItem('kztv_tsub')||'';
