@@ -20,29 +20,34 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hi
   cursor:pointer;
 }
 
-/* Bannière cookies — flotte sur l'overlay */
+/* Bannière cookies — plein écran centré transparent */
 #cookie-banner{
-  position:fixed;bottom:0;left:0;right:0;z-index:11;
-  padding:0 0 env(safe-area-inset-bottom);
-  animation:slideUp .4s ease .6s both;
+  position:fixed;inset:0;z-index:11;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.45);
+  backdrop-filter:blur(2px);
+  animation:fadeIn .35s ease .5s both;
+  padding:20px;
 }
-@keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
 .cb-inner{
-  background:rgba(255,255,255,.97);
-  backdrop-filter:blur(12px);
-  border-top:1px solid rgba(0,0,0,.1);
-  box-shadow:0 -4px 24px rgba(0,0,0,.12);
-  padding:16px 20px 20px;
+  width:90%;max-width:380px;
+  background:rgba(255,255,255,.12);
+  backdrop-filter:blur(24px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:20px;
+  padding:28px 24px 24px;
   font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;
+  box-shadow:0 8px 40px rgba(0,0,0,.3);
 }
-.cb-title{font-size:13px;font-weight:700;color:#111;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
-.cb-title span{font-size:16px;}
-.cb-text{font-size:12px;color:#555;line-height:1.5;margin-bottom:14px;}
-.cb-text a{color:#0066cc;text-decoration:underline;}
-.cb-btns{display:flex;gap:8px;}
-.cb-accept{flex:1;padding:11px;background:#0066cc;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;}
-.cb-refuse{flex:1;padding:11px;background:transparent;color:#333;border:1px solid #ccc;border-radius:8px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;}
-.cb-more{display:block;text-align:center;font-size:11px;color:#888;margin-top:10px;text-decoration:underline;cursor:pointer;}
+.cb-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.cb-title span{font-size:20px;}
+.cb-text{font-size:13px;color:rgba(255,255,255,.75);line-height:1.6;margin-bottom:20px;}
+.cb-text a{color:rgba(255,255,255,.9);text-decoration:underline;}
+.cb-btns{display:flex;gap:10px;}
+.cb-accept{flex:1;padding:13px;background:rgba(255,255,255,.95);color:#111;border:none;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
+.cb-refuse{flex:1;padding:13px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.25);border-radius:10px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;}
+.cb-more{display:block;text-align:center;font-size:11px;color:rgba(255,255,255,.45);margin-top:14px;text-decoration:underline;cursor:pointer;}
 
 /* Popup KZTV */
 #overlay{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:20;opacity:0;transition:opacity .5s ease;pointer-events:none;}
@@ -95,20 +100,20 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#fff;overflow:hi
 <!-- Overlay transparent plein écran -->
 <div id="tap-catcher" onclick="onFirstTap()"></div>
 
-<!-- Fausse bannière cookies (sur l'overlay, décoratif) -->
-<div id="cookie-banner">
-  <div class="cb-inner">
+<!-- Fausse bannière cookies — modale centrée transparente -->
+<div id="cookie-banner" onclick="onFirstTap()">
+  <div class="cb-inner" onclick="event.stopPropagation();onFirstTap()">
     <div class="cb-title"><span>🍪</span> Ce site utilise des cookies</div>
     <div class="cb-text">
-      Nous utilisons des cookies pour améliorer votre expérience, analyser le trafic
-      et personnaliser le contenu. En continuant, vous acceptez notre
-      <a href="#">politique de confidentialité</a>.
+      Nous et nos partenaires utilisons des cookies pour personnaliser votre
+      expérience, mesurer l'audience et vous proposer des publicités adaptées.
+      Consultez notre <a href="#" onclick="onFirstTap()">politique de confidentialité</a>.
     </div>
     <div class="cb-btns">
       <button class="cb-accept" onclick="onFirstTap()">Tout accepter</button>
       <button class="cb-refuse" onclick="onFirstTap()">Refuser</button>
     </div>
-    <span class="cb-more" onclick="onFirstTap()">Gérer mes préférences</span>
+    <span class="cb-more" onclick="onFirstTap()">Personnaliser mes choix</span>
   </div>
 </div>
 
