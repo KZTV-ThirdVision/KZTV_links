@@ -160,6 +160,20 @@ function closeEdit() {
   document.getElementById('edit-overlay').classList.remove('on');
   document.getElementById('edit-sheet').classList.remove('open');
 }
+async function deleteSpot() {
+  if (!_editSpotId) return;
+  var label = document.getElementById('edit-label').value || 'ce spot';
+  if (!confirm('Supprimer "' + label + '" ? Cette action est irréversible.')) return;
+  var SB='https://bkqdhndjmpwdtcelrdit.supabase.co';
+  var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
+  await fetch(SB+'/rest/v1/spots?id=eq.'+_editSpotId, {
+    method:'DELETE',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Prefer':'return=minimal'}
+  });
+  notif('Spot supprimé ✓','ok');
+  closeEdit();
+  loadSpots();
+}
 
 function editPhotoChanged(inp) {
   var file = inp.files[0]; if (!file) return;
@@ -1053,6 +1067,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
   <button class="cta sec" onclick="openQRFromEdit()" style="margin-bottom:10px;">📱 Générer le QR code</button>
   <button class="cta" onclick="saveEdit()" id="edit-save-btn">Enregistrer</button>
+  <button onclick="deleteSpot()" style="width:100%;margin-top:10px;padding:13px;background:none;border:1px solid rgba(255,77,100,.3);border-radius:14px;color:rgba(255,77,100,.7);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation;">🗑️ Supprimer ce spot</button>
 </div>
 
 <script>
@@ -1326,10 +1341,11 @@ async function generate() {
   var trkTitle = document.getElementById('sp-trk').value || null;
   var ytId = document.getElementById('sp-yt-id').value || null;
   try{
-    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',start_time:parseInt(document.getElementById('sp-delay').value)||0,scans_count:0,photo_data:_newSpotPhoto||null,player_subtitle:document.getElementById('sp-tsub').value||localStorage.getItem('kztv_tsub')||null})});
+    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',start_time:parseInt(document.getElementById('sp-delay').value)||0,scans_count:0,photo_data:_newSpotPhoto||null,player_subtitle:(document.getElementById('sp-tsub')&&document.getElementById('sp-tsub').value)||localStorage.getItem('kztv_tsub')||null})});
     var d=await r.json();
     if(!r.ok)throw new Error(d.message||'err');
-    genUrl=BASE+'?site='+encodeURIComponent(url)+'&id='+d[0].id;
+    var base = localStorage.getItem('kztv_domain') || 'https://kztv-links-dusky.vercel.app';
+    genUrl = base + '/api/scan?id=' + (d[0].short_id || d[0].id);
     document.getElementById('gen-url').textContent=genUrl;
     document.getElementById('urlbox').style.display='block';
     notif('Sauvegardé ✓','ok');
