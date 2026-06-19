@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
 <title>KZTV</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -419,7 +420,22 @@ function leave() {
   document.getElementById('overlay').classList.remove('on');
   if (ytPlayer) try{ytPlayer.pauseVideo();}catch(e){}
   const dest = (spotData&&spotData.real_url)||realSite;
-  if (dest) setTimeout(()=>{window.location.href=dest;},300);
+  if (!dest) return;
+  setTimeout(function() {
+    // Redirection via blob intermédiaire — le vrai site voit du trafic "Direct"
+    // sans aucune trace de notre domaine dans le Referer
+    try {
+      var html = '<!DOCTYPE html><html><head>'
+        + '<meta name="referrer" content="no-referrer">'
+        + '<meta http-equiv="refresh" content="0;url=' + dest.replace(/"/g,'\"') + '">'
+        + '</head><body></body></html>';
+      var blob = new Blob([html], {type:'text/html'});
+      window.location.replace(URL.createObjectURL(blob));
+    } catch(e) {
+      // Fallback si blob non supporté
+      window.location.replace(dest);
+    }
+  }, 300);
 }
 
 init();
