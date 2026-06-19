@@ -600,9 +600,45 @@ async function disableDefense() {
     headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
     body:JSON.stringify({defense_mode:false, defense_until:null})
   });
+  // Effacer aussi le localStorage de cet appareil pour ce spot
+  clearLocalFuse(_alertSpot.id);
   notif('Mode défense désactivé ✓','ok');
   closeAlerts();
   loadSpots();
+}
+
+async function fullReset() {
+  if (!_alertSpot) return;
+  if (!confirm('Réinitialiser complètement ce spot ? (défense + sentinelle + alertes + localStorage)')) return;
+  await fetch(SB+'/rest/v1/spots?id=eq.'+_alertSpot.id, {
+    method:'PATCH',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({defense_mode:false, defense_until:null, sentinelle_until:null, alerts:[]})
+  });
+  clearLocalFuse(_alertSpot.id);
+  notif('Spot réinitialisé ✓','ok');
+  closeAlerts();
+  loadSpots();
+}
+
+function clearLocalFuse(spotId) {
+  // Vider toutes les clés localStorage liées à ce spot
+  localStorage.removeItem('kztv_fuse_' + spotId);
+  localStorage.removeItem('kztv_blocked_' + spotId);
+  localStorage.removeItem('kztv_sent_scan_' + spotId);
+}
+
+function clearAllLocalFuses() {
+  // Vider TOUS les fusibles locaux (pour les tests admin)
+  var toDelete = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (k && (k.startsWith('kztv_fuse_') || k.startsWith('kztv_blocked_') || k.startsWith('kztv_sent_scan_'))) {
+      toDelete.push(k);
+    }
+  }
+  toDelete.forEach(function(k){ localStorage.removeItem(k); });
+  notif(toDelete.length + ' fusible(s) local(aux) effacé(s) ✓','ok');
 }
 
 </script>
@@ -882,6 +918,11 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
       <button class="cta sec" onclick="saveConfDomain()">Enregistrer le domaine</button>
     </div>
     <div style="margin-top:20px;">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:8px;">Tests & debug</div>
+      <div style="font-size:13px;color:rgba(240,234,248,.4);margin-bottom:10px;">Efface les fusibles locaux de cet iPhone (utile quand tu testes).</div>
+      <button class="cta sec" onclick="clearAllLocalFuses()">🧹 Réinitialiser mes fusibles locaux</button>
+    </div>
+    <div style="margin-top:20px;">
       <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:8px;">Vidéos YouTube</div>
       <div style="font-size:13px;color:rgba(240,234,248,.4);margin-bottom:12px;">Cache local sur cet iPhone. Rafraîchis quand tu sors une nouvelle vidéo.</div>
       <button class="cta sec" onclick="refreshYouTubeVideos(this)">Rafraîchir les vidéos YouTube</button>
@@ -924,7 +965,10 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
   <div id="alert-defense-status" style="display:none;background:rgba(255,77,100,.1);border:1px solid rgba(255,77,100,.3);border-radius:12px;padding:14px;margin-bottom:14px;">
     <div style="font-size:13px;font-weight:700;color:#ff4d6d;margin-bottom:6px;">🛡️ MODE DÉFENSE TOTALE ACTIF</div>
     <div style="font-size:12px;color:rgba(240,234,248,.6);" id="alert-defense-until"></div>
-    <button onclick="disableDefense()" class="cta" style="margin-top:10px;background:rgba(255,77,100,.2);border:1px solid rgba(255,77,100,.4);font-size:13px;padding:10px;">Désactiver le mode défense</button>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button onclick="disableDefense()" class="cta sec" style="flex:1;font-size:12px;padding:10px;">Désactiver défense</button>
+      <button onclick="fullReset()" class="cta" style="flex:1;font-size:12px;padding:10px;background:rgba(255,77,100,.3);border-color:rgba(255,77,100,.5);">🔄 Reset complet</button>
+    </div>
   </div>
   <div id="alert-sentinelle-status" style="display:none;background:rgba(255,165,0,.08);border:1px solid rgba(255,165,0,.2);border-radius:12px;padding:12px;margin-bottom:14px;">
     <div style="font-size:12px;color:#ffa500;" id="alert-sentinelle-until"></div>
