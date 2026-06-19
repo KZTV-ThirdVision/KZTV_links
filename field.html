@@ -295,6 +295,21 @@ function generateQR(spotUrl, sizeCm) {
   document.getElementById('qr-sheet').classList.add('open');
 }
 
+function openQRFromEdit() {
+  var url = document.getElementById('edit-url').value;
+  if (!url) { notif('URL manquante', 'er'); return; }
+  var qrUrl = 'https://kztv-links-dusky.vercel.app/q?site=' + encodeURIComponent(url) + '&id=' + (_editSpotId || '');
+  var sizeCm = (_qrSpotData && _qrSpotData.qr_size_cm) ? parseFloat(_qrSpotData.qr_size_cm) : 3.2;
+  generateQR(qrUrl, sizeCm);
+}
+
+function openQRFromGenerated() {
+  if (!_qrSpotData) { notif('Spot introuvable', 'er'); return; }
+  var url = 'https://kztv-links-dusky.vercel.app/q?site=' + encodeURIComponent(_qrSpotData.real_url || '') + '&id=' + _qrSpotData.id;
+  var sizeCm = _qrSpotData.qr_size_cm ? parseFloat(_qrSpotData.qr_size_cm) : 3.2;
+  generateQR(url, sizeCm);
+}
+
 
 function closeQR() {
   document.getElementById('qr-overlay').classList.remove('on');
