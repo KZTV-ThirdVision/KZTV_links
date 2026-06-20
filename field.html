@@ -283,6 +283,7 @@ async function saveEdit() {
     track_title:document.getElementById('edit-yt-title-val').value||null,
     start_time:parseInt(document.getElementById('edit-start-val').value)||0,
     player_subtitle:document.getElementById('edit-tsub').value||null,
+    lat:window._editLat||null, lng:window._editLng||null, address:window._editAddr||null
   };
   if(_editPhotoData) patch.photo_data=_editPhotoData;
   try{
