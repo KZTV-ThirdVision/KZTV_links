@@ -1749,8 +1749,17 @@ function buildMainMap() {
     attributionControl: false
   });
 
-  // GPS navigation control
+  // Navigation control
   _mainMap.addControl(new maplibregl.NavigationControl({showCompass:false}), 'bottom-right');
+  // GeolocateControl : point GPS natif MapLibre (comme Google Maps)
+  window._geolocate = new maplibregl.GeolocateControl({
+    positionOptions: {enableHighAccuracy:true},
+    trackUserLocation: false,
+    showUserLocation: true,
+    showAccuracyCircle: true,
+    fitBoundsOptions: {maxZoom:16}
+  });
+  _mainMap.addControl(window._geolocate, 'bottom-right');
 
   _mainMap.on('load', function() {
     _mapLoaded = true;
@@ -1773,20 +1782,23 @@ function buildMainMap() {
       _mainMap.on('mouseenter', layer, function(){ _mainMap.getCanvas().style.cursor='pointer'; });
       _mainMap.on('mouseleave', layer, function(){ _mainMap.getCanvas().style.cursor=''; });
     });
-    centerOnGPS(true);
+    // Déclencher GPS automatiquement au chargement
+    setTimeout(function() {
+      if (window._geolocate) window._geolocate.trigger();
+    }, 500);
     loadMapSpots();
   });
 }
 
 function centerOnGPS(firstLoad) {
+  // Déclencher le GeolocateControl natif — affiche le point bleu ET centre la carte
+  if (window._geolocate) {
+    window._geolocate.trigger();
+    return;
+  }
+  // Fallback si le contrôle pas encore prêt
   navigator.geolocation.getCurrentPosition(function(pos) {
-    var lng = pos.coords.longitude, lat = pos.coords.latitude;
-    _mainMap.flyTo({center:[lng,lat], zoom: firstLoad?15:16, speed:1.5});
-    // Marqueur GPS
-    if (window._gpsMarker) window._gpsMarker.remove();
-    var el = document.createElement('div');
-    el.style.cssText = 'width:18px;height:18px;background:#4fc3f7;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 4px rgba(79,195,247,.35);position:absolute;';
-    window._gpsMarker = new maplibregl.Marker({element:el}).setLngLat([lng,lat]).addTo(_mainMap);
+    _mainMap.flyTo({center:[pos.coords.longitude, pos.coords.latitude], zoom:15, speed:1.5});
   }, function() {
     if (firstLoad && _mainMap) _mainMap.setCenter([2.3522,48.8566]);
   });
