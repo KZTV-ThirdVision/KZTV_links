@@ -1810,16 +1810,9 @@ function centerOnGPS(firstLoad) {
     } else {
       _mainMap.flyTo({center:[lng, lat], zoom:16, speed:1.5});
     }
-    // Créer le marqueur position — PAS de position:absolute, MapLibre gère ça
+    // Marker natif MapLibre — toujours visible, SVG intégré
     if (window._gpsMarker) window._gpsMarker.remove();
-    var el = document.createElement('div');
-    el.style.width = '18px';
-    el.style.height = '18px';
-    el.style.backgroundColor = '#4fc3f7';
-    el.style.border = '3px solid #fff';
-    el.style.borderRadius = '50%';
-    el.style.boxShadow = '0 0 0 4px rgba(79,195,247,0.3)';
-    window._gpsMarker = new maplibregl.Marker({element: el, anchor:'center'})
+    window._gpsMarker = new maplibregl.Marker({color: '#4fc3f7', scale: 0.8})
       .setLngLat([lng, lat])
       .addTo(_mainMap);
   }, function() {
