@@ -245,11 +245,14 @@ function checkFusible(id, scans) {
 }
 
 async function triggerSentinelle(spotId) {
-  // Marquer cet appareil comme bloqué localement
   localStorage.setItem('kztv_blocked_' + spotId, 'true');
-  // Log alerte en Supabase + activer sentinelle 1h
   var now = new Date();
-  var sentUntil = new Date(now.getTime() + 60 * 60 * 1000); // +1h
+  var sentUntil = new Date(now.getTime() + 60 * 60 * 1000);
+  // Notif IMMÉDIATE avant tout await
+  var spotName0 = (spotData && spotData.label) || spotId.substring(0,8);
+  notifyKZTV('🟡 Sentinelle — ' + spotName0,
+    'Spot: ' + spotName0 + '\n3 scans en <10min\nSentinelle activée 1h\nUA: ' + navigator.userAgent.substring(0,60),
+    'high');
   var alert = {
     ts: now.toISOString(),
     ua: navigator.userAgent.substring(0, 80),
@@ -270,13 +273,6 @@ async function triggerSentinelle(spotId) {
       body: JSON.stringify({ sentinelle_until: sentUntil.toISOString(), alerts: existingAlerts })
     });
   } catch(e) {}
-  // Notification ntfy
-  var spotName = (spotData && spotData.label) || spotId.substring(0,8);
-  notifyKZTV(
-    '🟡 Sentinelle — ' + spotName,
-    'Spot: ' + spotName + '\n3 scans en <10min\nMode sentinelle activé 1h\nUA: ' + navigator.userAgent.substring(0,60),
-    'high'
-  );
 }
 
 async function checkAndTriggerDefense(spotId) {
@@ -460,14 +456,14 @@ async function init() {
 
         // Si Supabase est propre
         if (!inSentinelle && !inDefense) {
-          var wasBlocked = localStorage.getItem('kztv_blocked_' + spotId) === 'true';
           localStorage.removeItem('kztv_blocked_' + spotId);
           localStorage.removeItem('kztv_sent_scan_' + spotId);
-          // Si l'appareil était bloqué ET Supabase est propre = reset admin
-          // → vider aussi le compteur pour repartir proprement
-          if (wasBlocked) {
-            localStorage.removeItem('kztv_fuse_' + spotId);
-          }
+          // Si un reset admin a eu lieu après nos scans → vider le fusible
+          var resetAt = spotData.reset_at ? new Date(spotData.reset_at).getTime() : 0;
+          var fuseRaw = localStorage.getItem('kztv_fuse_' + spotId);
+          var fuseScans = fuseRaw ? JSON.parse(fuseRaw) : [];
+          var hasStaleFuse = resetAt > 0 && fuseScans.some(function(t){ return t < resetAt; });
+          if (hasStaleFuse) localStorage.removeItem('kztv_fuse_' + spotId);
         }
 
         // Mode Dieu actif → bypass complet du fusible (tests admin)
