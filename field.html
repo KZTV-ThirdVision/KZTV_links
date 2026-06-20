@@ -27,10 +27,8 @@ function tab(t) {
   if (target) target.className = 'panel on';
   if (t==='spots' && typeof loadSpots === 'function') loadSpots();
   if (t==='map' && typeof initMainMap === 'function') {
-    setTimeout(function(){
-      initMainMap();
-      if (window._mainMap) window._mainMap.invalidateSize();
-    }, 50);
+    setTimeout(function(){ initMainMap(); }, 80);
+    setTimeout(function(){ if (window._mainMap) window._mainMap.invalidateSize(true); }, 300);
   }
   if (t==='config' && typeof loadConfTsub === 'function') { loadConfTsub(); loadConfDomain(); loadGodMode(); }
   if (t==='scanner') {
@@ -979,15 +977,15 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
   </div>
 
   <!-- CONFIG -->
-  <div class="panel" id="p-map" style="display:flex;flex-direction:column;">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;flex-shrink:0;">
+  <div class="panel" id="p-map" style="position:relative;overflow:hidden;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;position:relative;z-index:10;background:rgba(8,4,18,.95);">
     <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;">SPOTS</div>
     <div style="display:flex;gap:6px;">
       <button id="map-sat-btn" onclick="setMapLayer('sat')" style="font-size:11px;padding:5px 10px;border-radius:8px;border:1px solid rgba(123,47,255,.4);background:rgba(123,47,255,.2);color:#c94dff;font-family:Inter,sans-serif;cursor:pointer;">Satellite</button>
       <button id="map-plan-btn" onclick="setMapLayer('plan')" style="font-size:11px;padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(240,234,248,.5);font-family:Inter,sans-serif;cursor:pointer;">Plan</button>
     </div>
   </div>
-  <div id="kztv-map" style="width:100%;flex:1;min-height:0;"></div>
+  <div id="kztv-map" style="position:absolute;top:52px;left:0;right:0;bottom:0;"></div>
 </div>
 
 <div class="panel" id="p-config">
@@ -1693,9 +1691,20 @@ function initMainMap() {
 }
 
 function buildMainMap() {
-  if (_mainMap) { _mainMap.invalidateSize(); loadMapSpots(); return; }
-  // tap:false évite les conflits de touch sur iOS PWA
-  _mainMap = L.map('kztv-map', {zoomControl:false, tap:false, touchZoom:true});
+  if (_mainMap) {
+    setTimeout(function(){ _mainMap.invalidateSize(true); }, 100);
+    loadMapSpots(); return;
+  }
+  // Calculer la hauteur exacte du container pour Leaflet
+  var mapEl = document.getElementById('kztv-map');
+  if (mapEl) {
+    var rect = mapEl.getBoundingClientRect();
+    if (rect.height < 100) {
+      // Pas encore rendu — réessayer
+      setTimeout(buildMainMap, 150); return;
+    }
+  }
+  _mainMap = L.map('kztv-map', {zoomControl:false, tap:false, touchZoom:true, bounceAtZoomLimits:false});
   // Tuiles satellite Google (plus fiables sur mobile que Esri)
   _satLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
     attribution:'Google', maxZoom:20, maxNativeZoom:19, tileSize:256
