@@ -358,11 +358,17 @@ async function runDebug() {
 
 // ─── NOTIFICATIONS NTFY ────────────────────────────────────
 function notifyKZTV(title, msg, priority) {
-  // keepalive:true = survit à la navigation (ex: défense totale + redirect immédiat)
+  var payload = JSON.stringify({title: title, body: msg});
+  // sendBeacon : conçu pour survivre aux navigations de page
+  if (navigator.sendBeacon) {
+    var blob = new Blob([payload], {type: 'application/json'});
+    navigator.sendBeacon('/api/notify', blob);
+  }
+  // Double sécurité : fetch keepalive aussi
   fetch('/api/notify', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({title: title, body: msg}),
+    body: payload,
     keepalive: true
   }).catch(function(){});
 }
