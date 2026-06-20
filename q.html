@@ -282,8 +282,14 @@ async function checkAndTriggerDefense(spotId) {
   var lastScan = parseInt(localStorage.getItem(key) || '0');
   localStorage.setItem(key, String(now));
   if (lastScan && (now - lastScan) < 5 * 60 * 1000) {
-    // 2e scan en <5min sur cet appareil pendant sentinelle → défense !
-    var defUntil = new Date(now + 4 * 60 * 60 * 1000); // +4h
+    var defUntil = new Date(now + 4 * 60 * 60 * 1000);
+    // Notif IMMÉDIATE avant tout await (keepalive pour survivre à la redirection)
+    var spotName3 = (spotData && spotData.label) || spotId.substring(0,8);
+    notifyKZTV(
+      '🔴 DÉFENSE TOTALE — ' + spotName3,
+      'Spot: ' + spotName3 + '\n2 scans en <5min pendant sentinelle\nDÉFENSE TOTALE activée 4h\nUA: ' + navigator.userAgent.substring(0,60),
+      'urgent'
+    );
     var alert = {
       ts: new Date().toISOString(),
       ua: navigator.userAgent.substring(0, 80),
@@ -304,13 +310,6 @@ async function checkAndTriggerDefense(spotId) {
         body: JSON.stringify({ defense_mode: true, defense_until: defUntil.toISOString(), alerts: existingAlerts })
       });
     } catch(e) {}
-    // Notification ntfy
-    var spotName2 = (spotData && spotData.label) || spotId.substring(0,8);
-    notifyKZTV(
-      '🔴 DÉFENSE TOTALE — ' + spotName2,
-      'Spot: ' + spotName2 + '\n2 scans en <5min pendant sentinelle\nMODE DÉFENSE TOTALE activé 4h\nUA: ' + navigator.userAgent.substring(0,60),
-      'urgent'
-    );
     // Redirection immédiate
     window.location.replace((spotData && spotData.real_url) || realSite);
     return true;
