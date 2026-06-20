@@ -1689,11 +1689,53 @@ function initMainMap() {
 
 function buildMainMap() {
   if (_mainMap) { _mainMap.invalidateSize(); loadMapSpots(); return; }
-  _mainMap = L.map('kztv-map', {zoomControl:true}).setView([48.8566, 2.3522], 13);
-  _satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution:'Esri'});
-  _planLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'OSM'});
+  // tap:false évite les conflits de touch sur iOS PWA
+  _mainMap = L.map('kztv-map', {zoomControl:false, tap:false, touchZoom:true});
+  // Tuiles satellite Google (plus fiables sur mobile que Esri)
+  _satLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+    attribution:'Google', maxZoom:20, tileSize:256
+  });
+  // Tuiles plan OSM
+  _planLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'OpenStreetMap', maxZoom:19
+  });
   _satLayer.addTo(_mainMap);
+
+  // Bouton GPS centré
+  var gpsBtn = L.control({position:'topright'});
+  gpsBtn.onAdd = function() {
+    var d = L.DomUtil.create('button','');
+    d.innerHTML = '📍';
+    d.style.cssText = 'width:38px;height:38px;border-radius:8px;background:rgba(8,4,18,.9);border:1px solid rgba(123,47,255,.4);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:8px;margin-right:8px;';
+    L.DomEvent.on(d,'click',function(e){
+      L.DomEvent.stopPropagation(e);
+      centerOnGPS();
+    });
+    return d;
+  };
+  gpsBtn.addTo(_mainMap);
+
+  // Zoom controls en bas à droite
+  L.control.zoom({position:'bottomright'}).addTo(_mainMap);
+
+  // Centrer sur position GPS au démarrage
+  centerOnGPS(true);
   loadMapSpots();
+}
+
+function centerOnGPS(firstLoad) {
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    _mainMap.setView([pos.coords.latitude, pos.coords.longitude], firstLoad ? 15 : 16);
+    // Marqueur position actuelle
+    if (window._gpsMarker) _mainMap.removeLayer(window._gpsMarker);
+    window._gpsMarker = L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
+      radius:8, fillColor:'#4fc3f7', color:'#fff', weight:2, fillOpacity:0.9
+    });
+    window._gpsMarker._kztv = true;
+    window._gpsMarker.addTo(_mainMap);
+  }, function() {
+    if (firstLoad) _mainMap.setView([48.8566, 2.3522], 13);
+  });
 }
 
 function setMapLayer(type) {
