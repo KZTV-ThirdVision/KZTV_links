@@ -4,8 +4,19 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const text = (body.title ? '*' + body.title + '*\n' : '') + (body.body || '');
+    // Lire depuis query params (sendBeacon) ou body JSON
+    const qTitle = req.query && req.query.title;
+    const qBody  = req.query && req.query.body;
+    let title, bodyText;
+    if (qTitle) {
+      title    = qTitle;
+      bodyText = qBody || '';
+    } else {
+      const b  = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+      title    = b.title || 'KZTV';
+      bodyText = b.body  || '';
+    }
+    const text = (title ? '*' + title + '*\n' : '') + bodyText;
     const r = await fetch('https://api.telegram.org/bot8776244027:AAG6vCk6ilcb3qACw2qV7_SxaY7FJtmsK-Y/sendMessage', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
