@@ -250,8 +250,8 @@ async function triggerSentinelle(spotId) {
   var sentUntil = new Date(now.getTime() + 60 * 60 * 1000);
   // Notif IMMÉDIATE avant tout await
   var spotName0 = (spotData && spotData.label) || spotId.substring(0,8);
-  notifyKZTV('🟡 Sentinelle — ' + spotName0,
-    'Spot: ' + spotName0 + '\n3 scans en <10min\nSentinelle activée 1h\nUA: ' + navigator.userAgent.substring(0,60),
+  notifyKZTV('SENTINELLE - ' + spotName0,
+    'Spot: ' + spotName0 + ' | 3 scans <10min | Sentinelle 1h | UA: ' + navigator.userAgent.substring(0,50),
     'high');
   var alert = {
     ts: now.toISOString(),
@@ -285,9 +285,8 @@ async function checkAndTriggerDefense(spotId) {
     var defUntil = new Date(now + 4 * 60 * 60 * 1000);
     // Notif IMMÉDIATE avant tout await (keepalive pour survivre à la redirection)
     var spotName3 = (spotData && spotData.label) || spotId.substring(0,8);
-    notifyKZTV(
-      '🔴 DÉFENSE TOTALE — ' + spotName3,
-      'Spot: ' + spotName3 + '\n2 scans en <5min pendant sentinelle\nDÉFENSE TOTALE activée 4h\nUA: ' + navigator.userAgent.substring(0,60),
+    notifyKZTV('DEFENSE TOTALE - ' + spotName3,
+      'Spot: ' + spotName3 + ' | 2 scans <5min pendant sentinelle | DEFENSE 4h | UA: ' + navigator.userAgent.substring(0,50),
       'urgent'
     );
     var alert = {
