@@ -629,7 +629,7 @@ async function fullReset() {
   await fetch(SB+'/rest/v1/spots?id=eq.'+_alertSpot.id, {
     method:'PATCH',
     headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify({defense_mode:false, defense_until:null, sentinelle_until:null, alerts:[]})
+    body:JSON.stringify({defense_mode:false, defense_until:null, sentinelle_until:null, alerts:[], reset_at: new Date().toISOString()})
   });
   clearLocalFuse(_alertSpot.id);
   // Notif Telegram reset
