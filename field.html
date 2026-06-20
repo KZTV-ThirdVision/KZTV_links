@@ -16,7 +16,7 @@ var DEFAULT_PIN = '1234';
 
 // tab() défini tôt pour être disponible dès le chargement
 function tab(t) {
-  var names = ['scanner','spots','config'];
+  var names = ['scanner','spots','map','config'];
   for (var i=0;i<names.length;i++) {
     var b = document.getElementById('tb-'+names[i]);
     if (b) b.className = 'tb' + (names[i]===t ? ' on' : '');
@@ -27,7 +27,14 @@ function tab(t) {
   if (target) target.className = 'panel on';
   if (t==='spots' && typeof loadSpots === 'function') loadSpots();
   if (t==='map' && typeof initMainMap === 'function') {
-    setTimeout(initMainMap, 100);
+    setTimeout(function() {
+      if (window._mainMap && window._mapLoaded) {
+        centerOnGPS(false); // recentrer + redemander position à chaque ouverture
+        loadMapSpots();
+      } else {
+        initMainMap();
+      }
+    }, 100);
   }
   if (t==='config' && typeof loadConfTsub === 'function') { loadConfTsub(); loadConfDomain(); loadGodMode(); }
   if (t==='scanner') {
@@ -125,6 +132,14 @@ function openEdit(spot) {
   _editPhotoData = null;
 
   document.getElementById('edit-label').value = spot.label || '';
+  // Initialiser la position
+  window._editLat = spot.lat || null;
+  window._editLng = spot.lng || null;
+  window._editAddr = spot.address || '';
+  var ls = document.getElementById('edit-loc-status');
+  if (ls) ls.textContent = spot.address ? '📍 ' + spot.address : (spot.lat ? '📍 ' + spot.lat.toFixed(5)+', '+spot.lng.toFixed(5) : '');
+  var ai = document.getElementById('edit-loc-address');
+  if (ai) ai.value = '';
   document.getElementById('edit-url').value = spot.real_url || '';
   document.getElementById('edit-yt-id').value = spot.yt_url || '';
   document.getElementById('edit-yt-title-val').value = spot.track_title || '';
@@ -1660,6 +1675,8 @@ function confirmMiniMap() {
     reverseGeocode(_locLat, _locLng, function(addr) {
       _locAddr = addr;
       setLocStatus('📍 ' + addr, '#1ed760');
+      // Callback si ouvert depuis l'éditeur
+      if (window._miniMapCallback) { window._miniMapCallback(); window._miniMapCallback = null; }
     });
   }
   closeMiniMap();
@@ -1825,6 +1842,48 @@ function showSpotPopup(s) {
 function closeSpotPopup() {
   document.getElementById('spot-popup-overlay').style.display = 'none';
   document.getElementById('spot-popup').style.display = 'none';
+}
+
+function editUseGPS() {
+  var ls = document.getElementById('edit-loc-status');
+  if (ls) ls.textContent = 'Localisation...';
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    window._editLat = pos.coords.latitude;
+    window._editLng = pos.coords.longitude;
+    reverseGeocode(window._editLat, window._editLng, function(addr) {
+      window._editAddr = addr;
+      if (ls) { ls.textContent = '📍 ' + addr; ls.style.color = '#1ed760'; }
+    });
+  }, function() { if (ls) { ls.textContent = 'GPS non disponible'; ls.style.color = '#ff4d6d'; } });
+}
+
+function editOpenMiniMap() {
+  // Pré-positionner la mini-map sur la position existante du spot
+  if (window._editLat) { _locLat = window._editLat; _locLng = window._editLng; }
+  openMiniMap();
+  // Quand confirmMiniMap() est appelé, _locLat/_locLng sont mis à jour
+  // On copie ensuite dans _editLat/_editLng via un hook
+  window._miniMapCallback = function() {
+    window._editLat = _locLat; window._editLng = _locLng; window._editAddr = _locAddr;
+    var ls = document.getElementById('edit-loc-status');
+    if (ls) { ls.textContent = '📍 ' + (_locAddr || _locLat.toFixed(5)+', '+_locLng.toFixed(5)); ls.style.color = '#1ed760'; }
+  };
+}
+
+function editGeocodeAddress() {
+  var q = document.getElementById('edit-loc-address').value.trim();
+  if (!q) return;
+  var ls = document.getElementById('edit-loc-status');
+  if (ls) ls.textContent = 'Recherche...';
+  fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d && d[0]) {
+        window._editLat = parseFloat(d[0].lat); window._editLng = parseFloat(d[0].lon);
+        window._editAddr = q;
+        if (ls) { ls.textContent = '📍 '+d[0].display_name.split(',').slice(0,3).join(', '); ls.style.color='#1ed760'; }
+      } else if (ls) { ls.textContent = 'Adresse introuvable'; ls.style.color='#ff4d6d'; }
+    });
 }
 
 function editFromMap() {
