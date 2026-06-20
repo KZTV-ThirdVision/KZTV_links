@@ -836,6 +836,11 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 .edit-photo .photo-ph{display:flex;flex-direction:column;align-items:center;gap:6px;color:rgba(240,234,248,.4);}
 
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
+<style>
+.maplibregl-ctrl-geolocate { display:flex !important; }
+.maplibregl-user-location-dot { background:#4fc3f7 !important; }
+.maplibregl-ctrl-bottom-right { z-index:5 !important; }
+</style>
 </style>
 </head>
 <body>
@@ -1661,37 +1666,44 @@ function openMiniMap() {
 }
 
 function loadLeaflet(cb) {
-  var s = document.createElement('script');
-  s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-  s.onload = cb; document.head.appendChild(s);
+  // Leaflet remplacé par MapLibre — on appelle le callback directement
+  if (cb) cb();
 }
 
 function initMiniMap() {
   if (_miniMap) { _miniMap.remove(); _miniMap = null; }
   var lat = _locLat || 48.8566, lng = _locLng || 2.3522;
-  _miniMap = L.map('mini-map-el', {zoomControl:true}).setView([lat, lng], 16);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    {attribution:'Esri'}).addTo(_miniMap);
-  var icon = L.divIcon({className:'',html:'<div style="width:22px;height:22px;background:#7b2fff;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.4);"></div>',iconSize:[22,22],iconAnchor:[11,11]});
-  _miniMarker = L.marker([lat, lng], {draggable:true, icon:icon}).addTo(_miniMap);
-  _miniMarker.on('dragend', function(e) {
-    var p = e.target.getLatLng();
-    _locLat = p.lat; _locLng = p.lng;
+  _miniMap = new maplibregl.Map({
+    container: 'mini-map-el',
+    style: {
+      version:8,
+      sources:{'sat':{type:'raster',
+        tiles:['https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+               'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'],
+        tileSize:256,maxzoom:20}},
+      layers:[{id:'sat',type:'raster',source:'sat'}]
+    },
+    center:[lng, lat], zoom:16,
+    attributionControl:false
   });
-  setTimeout(function(){ _miniMap.invalidateSize(); }, 200);
+  // Épingle au centre = position de la carte (pas de drag nécessaire)
+  _miniMap.on('move', function() {
+    var c = _miniMap.getCenter();
+    _locLat = c.lat; _locLng = c.lng;
+  });
 }
 
 function confirmMiniMap() {
-  if (_miniMarker) {
-    var p = _miniMarker.getLatLng();
-    _locLat = p.lat; _locLng = p.lng;
-    reverseGeocode(_locLat, _locLng, function(addr) {
-      _locAddr = addr;
-      setLocStatus('📍 ' + addr, '#1ed760');
-      // Callback si ouvert depuis l'éditeur
-      if (window._miniMapCallback) { window._miniMapCallback(); window._miniMapCallback = null; }
-    });
+  // La position est mise à jour en temps réel via l'event 'move'
+  if (_miniMap) {
+    var c = _miniMap.getCenter();
+    _locLat = c.lat; _locLng = c.lng;
   }
+  reverseGeocode(_locLat, _locLng, function(addr) {
+    _locAddr = addr;
+    setLocStatus('📍 ' + addr, '#1ed760');
+    if (window._miniMapCallback) { window._miniMapCallback(); window._miniMapCallback = null; }
+  });
   closeMiniMap();
 }
 
