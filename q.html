@@ -358,17 +358,10 @@ async function runDebug() {
 
 // ─── NOTIFICATIONS NTFY ────────────────────────────────────
 function notifyKZTV(title, msg, priority) {
-  // sendBeacon uniquement — conçu pour survivre aux redirections
-  // Utilise text/plain pour éviter le preflight CORS et simplifier le parsing
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon(
-      '/api/notify?title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(msg),
-      ''
-    );
-  } else {
-    fetch('/api/notify?title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(msg),
-      {method:'POST', keepalive:true}).catch(function(){});
-  }
+  // Pixel tracker GET — survit à toute navigation, aucun preflight, aucun parsing
+  var url = '/api/notify?t=' + encodeURIComponent(title.substring(0,80))
+          + '&b=' + encodeURIComponent(msg.substring(0,200));
+  new Image().src = url;
 }
 
 async function init() {
