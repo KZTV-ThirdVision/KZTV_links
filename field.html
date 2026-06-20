@@ -1779,6 +1779,14 @@ function buildMainMap() {
     _mapLoaded = true;
     // Ajouter source spots (GeoJSON)
     _mainMap.addSource('spots', { type:'geojson', data:{type:'FeatureCollection',features:[]} });
+    // Source GPS position
+    _mainMap.addSource('gps-pos', { type:'geojson', data:{type:'FeatureCollection',features:[]} });
+    _mainMap.addLayer({ id:'gps-halo', type:'circle', source:'gps-pos',
+      paint:{'circle-radius':14,'circle-color':'rgba(79,195,247,0.25)','circle-stroke-width':0}
+    });
+    _mainMap.addLayer({ id:'gps-dot', type:'circle', source:'gps-pos',
+      paint:{'circle-radius':8,'circle-color':'#4fc3f7','circle-stroke-width':3,'circle-stroke-color':'#fff'}
+    });
     _mainMap.addLayer({ id:'spots-active', type:'circle', source:'spots',
       filter:['==','active',true],
       paint:{'circle-radius':9,'circle-color':'#7b2fff','circle-stroke-width':2,'circle-stroke-color':'#fff'}
@@ -1810,11 +1818,13 @@ function centerOnGPS(firstLoad) {
     } else {
       _mainMap.flyTo({center:[lng, lat], zoom:16, speed:1.5});
     }
-    // Marker natif MapLibre — toujours visible, SVG intégré
-    if (window._gpsMarker) window._gpsMarker.remove();
-    window._gpsMarker = new maplibregl.Marker({color: '#4fc3f7', scale: 0.8})
-      .setLngLat([lng, lat])
-      .addTo(_mainMap);
+    // Mettre à jour le point GPS via GeoJSON (même pipeline WebGL que les spots)
+    if (_mainMap.getSource('gps-pos')) {
+      _mainMap.getSource('gps-pos').setData({
+        type:'Feature',
+        geometry:{type:'Point', coordinates:[lng, lat]}
+      });
+    }
   }, function() {
     if (firstLoad && _mainMap) _mainMap.flyTo({center:[2.3522, 48.8566], zoom:13});
   }, {enableHighAccuracy:true, timeout:8000});
