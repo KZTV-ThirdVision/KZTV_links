@@ -846,6 +846,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
   <div class="tabs">
     <button class="tb on" id="tb-scanner" onclick="tab('scanner')">Scanner</button>
     <button class="tb" id="tb-spots" onclick="tab('spots')">Spots</button>
+    <button class="tb" id="tb-map" onclick="tab('map')">Map</button>
     <button class="tb" id="tb-config" onclick="tab('config')">Config</button>
   </div>
 
@@ -855,7 +856,16 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
     <div style="display:flex;gap:10px;margin-bottom:16px;">
       <button class="cta sec" onclick="pasteFromClipboard()" style="flex:1;padding:13px 8px;font-size:13px;">📋 Coller l'URL</button>
-      <button class="cta sec" onclick="document.getElementById('new-photo-in').click()" style="flex:1;padding:13px 8px;font-size:13px;" id="new-photo-btn">📍 Photo du spot</button>
+      <button class="cta sec" onclick="document.getElementById('new-photo-in').click()" style="flex:1;padding:13px 8px;font-size:13px;" id="new-photo-btn">📸 Photo</button>
+      <button class="cta sec" onclick="togLocAcc()" style="flex:1;padding:13px 8px;font-size:13px;">📍 Position</button>
+    </div>
+    <div id="loc-acc" style="max-height:0;overflow:hidden;transition:max-height .3s ease;">
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:10px;">
+        <button onclick="useGPS()" class="cta sec" style="width:100%;margin-bottom:8px;text-align:left;padding:11px 14px;">🎯 Position actuelle (GPS)</button>
+        <button onclick="openMiniMap()" class="cta sec" style="width:100%;margin-bottom:8px;text-align:left;padding:11px 14px;">🗺️ Placer sur la carte</button>
+        <div class="fld"><input type="text" id="loc-address" placeholder="Adresse manuelle..." style="font-size:16px;" onchange="geocodeAddress()"></div>
+        <div id="loc-status" style="font-size:12px;color:#c94dff;margin-top:6px;min-height:16px;"></div>
+      </div>
     </div>
     <input type="file" id="new-photo-in" accept="image/*" capture="environment" style="display:none" onchange="newSpotPhotoChanged(this)">
     <div id="new-photo-preview" style="display:none;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin-bottom:12px;position:relative;">
