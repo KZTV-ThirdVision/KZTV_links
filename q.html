@@ -358,19 +358,17 @@ async function runDebug() {
 
 // ─── NOTIFICATIONS NTFY ────────────────────────────────────
 function notifyKZTV(title, msg, priority) {
-  var payload = JSON.stringify({title: title, body: msg});
-  // sendBeacon : conçu pour survivre aux navigations de page
+  // sendBeacon uniquement — conçu pour survivre aux redirections
+  // Utilise text/plain pour éviter le preflight CORS et simplifier le parsing
   if (navigator.sendBeacon) {
-    var blob = new Blob([payload], {type: 'application/json'});
-    navigator.sendBeacon('/api/notify', blob);
+    navigator.sendBeacon(
+      '/api/notify?title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(msg),
+      ''
+    );
+  } else {
+    fetch('/api/notify?title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(msg),
+      {method:'POST', keepalive:true}).catch(function(){});
   }
-  // Double sécurité : fetch keepalive aussi
-  fetch('/api/notify', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: payload,
-    keepalive: true
-  }).catch(function(){});
 }
 
 async function init() {
