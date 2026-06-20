@@ -1160,6 +1160,18 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
   <button class="cta sec" onclick="openQRFromEdit()" style="margin-bottom:10px;">📱 Générer le QR code</button>
   <button class="cta" onclick="saveEdit()" id="edit-save-btn">Enregistrer</button>
+  <!-- Position -->
+  <div style="margin-bottom:14px;">
+    <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;letter-spacing:.05em;text-transform:uppercase;">Position</div>
+    <div id="edit-loc-status" style="font-size:12px;color:#c94dff;margin-bottom:8px;min-height:16px;"></div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <button onclick="editUseGPS()" class="cta sec" style="flex:1;padding:10px;font-size:13px;">🎯 GPS</button>
+      <button onclick="editOpenMiniMap()" class="cta sec" style="flex:1;padding:10px;font-size:13px;">🗺️ Carte</button>
+    </div>
+    <div class="fld">
+      <input type="text" id="edit-loc-address" placeholder="Adresse manuelle..." style="font-size:16px;" onchange="editGeocodeAddress()">
+    </div>
+  </div>
   <button onclick="deleteSpot()" style="width:100%;margin-top:10px;padding:13px;background:none;border:1px solid rgba(255,77,100,.3);border-radius:14px;color:rgba(255,77,100,.7);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation;">🗑️ Supprimer ce spot</button>
 </div>
 
@@ -1773,7 +1785,7 @@ function centerOnGPS(firstLoad) {
     // Marqueur GPS
     if (window._gpsMarker) window._gpsMarker.remove();
     var el = document.createElement('div');
-    el.style.cssText = 'width:16px;height:16px;background:#4fc3f7;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 3px rgba(79,195,247,.3)';
+    el.style.cssText = 'width:18px;height:18px;background:#4fc3f7;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 4px rgba(79,195,247,.35);position:absolute;';
     window._gpsMarker = new maplibregl.Marker({element:el}).setLngLat([lng,lat]).addTo(_mainMap);
   }, function() {
     if (firstLoad && _mainMap) _mainMap.setCenter([2.3522,48.8566]);
