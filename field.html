@@ -25,7 +25,8 @@ function tab(t) {
   for (var j=0;j<panels.length;j++) panels[j].className = 'panel';
   var target = document.getElementById('p-'+t);
   if (target) target.className = 'panel on';
-  if (t==='spots' && typeof loadSpots === 'function') loadSpots(); // toujours recharger
+  if (t==='spots' && typeof loadSpots === 'function') loadSpots();
+  if (t==='map' && typeof initMainMap === 'function') initMainMap();
   if (t==='config' && typeof loadConfTsub === 'function') { loadConfTsub(); loadConfDomain(); loadGodMode(); }
   if (t==='scanner') {
     if (typeof loadYouTubeVideos === 'function' && typeof ytVideos !== 'undefined' && ytVideos.length===0) loadYouTubeVideos();
@@ -815,6 +816,8 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 .edit-photo{width:100%;aspect-ratio:16/9;border-radius:12px;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.1);overflow:hidden;position:relative;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;justify-content:center;}
 .edit-photo img{width:100%;height:100%;object-fit:cover;display:none;}
 .edit-photo .photo-ph{display:flex;flex-direction:column;align-items:center;gap:6px;color:rgba(240,234,248,.4);}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </style>
 </head>
 <body>
@@ -1414,7 +1417,7 @@ async function generate() {
   var trkTitle = document.getElementById('sp-trk').value || null;
   var ytId = document.getElementById('sp-yt-id').value || null;
   try{
-    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',start_time:parseInt(document.getElementById('sp-delay').value)||0,scans_count:0,photo_data:_newSpotPhoto||null,player_subtitle:(document.getElementById('sp-tsub')&&document.getElementById('sp-tsub').value)||localStorage.getItem('kztv_tsub')||null})});
+    var r=await fetch(SB+'/rest/v1/spots',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({label:lbl,real_url:url,active:true,qr_size_cm:(cmV*10+mmV)/10,track_title:trkTitle,yt_url:ytId,yt_mode:'audio',start_time:parseInt(document.getElementById('sp-delay').value)||0,scans_count:0,photo_data:_newSpotPhoto||null,player_subtitle:(document.getElementById('sp-tsub')&&document.getElementById('sp-tsub').value)||localStorage.getItem('kztv_tsub')||null,lat:_locLat||null,lng:_locLng||null,address:_locAddr||null})});
     var d=await r.json();
     if(!r.ok)throw new Error(d.message||'err');
     var base = localStorage.getItem('kztv_domain') || 'https://kztv-links-dusky.vercel.app';
@@ -1563,6 +1566,200 @@ document.addEventListener('focusin', function(e) {
 
 // Init size display
 adj('cm',0);
+
+// ─── LOCALISATION ─────────────────────────────────────────
+var _locLat = null, _locLng = null, _locAddr = '';
+
+function togLocAcc() {
+  var a = document.getElementById('loc-acc');
+  if (a.style.maxHeight === '0px' || !a.style.maxHeight) {
+    a.style.maxHeight = '300px'; a.style.marginBottom = '10px';
+  } else { a.style.maxHeight = '0px'; a.style.marginBottom = '0'; }
+}
+
+function setLocStatus(msg, col) {
+  var el = document.getElementById('loc-status');
+  if (el) { el.textContent = msg; el.style.color = col || '#c94dff'; }
+}
+
+function useGPS() {
+  setLocStatus('Localisation en cours...');
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    _locLat = pos.coords.latitude;
+    _locLng = pos.coords.longitude;
+    reverseGeocode(_locLat, _locLng, function(addr) {
+      _locAddr = addr;
+      setLocStatus('📍 ' + addr, '#1ed760');
+    });
+  }, function() { setLocStatus('GPS non disponible', '#ff4d6d'); });
+}
+
+function reverseGeocode(lat, lng, cb) {
+  fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lng+'&format=json')
+    .then(function(r){return r.json();})
+    .then(function(d){ cb(d.display_name ? d.display_name.split(',').slice(0,3).join(', ') : lat.toFixed(5)+','+lng.toFixed(5)); })
+    .catch(function(){ cb(lat.toFixed(5)+','+lng.toFixed(5)); });
+}
+
+function geocodeAddress() {
+  var q = document.getElementById('loc-address').value.trim();
+  if (!q) return;
+  setLocStatus('Recherche...');
+  fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if (d && d[0]) {
+        _locLat = parseFloat(d[0].lat); _locLng = parseFloat(d[0].lon);
+        _locAddr = q;
+        setLocStatus('📍 '+d[0].display_name.split(',').slice(0,3).join(', '), '#1ed760');
+      } else { setLocStatus('Adresse introuvable', '#ff4d6d'); }
+    }).catch(function(){ setLocStatus('Erreur réseau', '#ff4d6d'); });
+}
+
+// ─── MINI-MAP (placement épingle) ─────────────────────────
+var _miniMap = null, _miniMarker = null;
+
+function openMiniMap() {
+  var ov = document.getElementById('minimap-overlay');
+  var sh = document.getElementById('minimap-sheet');
+  if (!ov || !sh) return;
+  ov.style.display = 'block'; sh.style.display = 'flex';
+  setTimeout(function() {
+    if (!window.L) { loadLeaflet(initMiniMap); } else { initMiniMap(); }
+  }, 100);
+}
+
+function loadLeaflet(cb) {
+  var s = document.createElement('script');
+  s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  s.onload = cb; document.head.appendChild(s);
+}
+
+function initMiniMap() {
+  if (_miniMap) { _miniMap.remove(); _miniMap = null; }
+  var lat = _locLat || 48.8566, lng = _locLng || 2.3522;
+  _miniMap = L.map('mini-map-el', {zoomControl:true}).setView([lat, lng], 16);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {attribution:'Esri'}).addTo(_miniMap);
+  var icon = L.divIcon({className:'',html:'<div style="width:22px;height:22px;background:#7b2fff;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.4);"></div>',iconSize:[22,22],iconAnchor:[11,11]});
+  _miniMarker = L.marker([lat, lng], {draggable:true, icon:icon}).addTo(_miniMap);
+  _miniMarker.on('dragend', function(e) {
+    var p = e.target.getLatLng();
+    _locLat = p.lat; _locLng = p.lng;
+  });
+  setTimeout(function(){ _miniMap.invalidateSize(); }, 200);
+}
+
+function confirmMiniMap() {
+  if (_miniMarker) {
+    var p = _miniMarker.getLatLng();
+    _locLat = p.lat; _locLng = p.lng;
+    reverseGeocode(_locLat, _locLng, function(addr) {
+      _locAddr = addr;
+      setLocStatus('📍 ' + addr, '#1ed760');
+    });
+  }
+  closeMiniMap();
+}
+
+function closeMiniMap() {
+  document.getElementById('minimap-overlay').style.display = 'none';
+  document.getElementById('minimap-sheet').style.display = 'none';
+}
+
+// ─── RESET localisation dans resetScannerForm ─────────────
+var _origReset = resetScannerForm;
+resetScannerForm = function() {
+  _origReset();
+  _locLat = null; _locLng = null; _locAddr = '';
+  setLocStatus('');
+  var acc = document.getElementById('loc-acc');
+  if (acc) { acc.style.maxHeight = '0px'; acc.style.marginBottom = '0'; }
+  var addr = document.getElementById('loc-address');
+  if (addr) addr.value = '';
+};
+
+// ─── MAP PRINCIPALE ────────────────────────────────────────
+var _mainMap = null, _satLayer = null, _planLayer = null, _mapSpot = null;
+
+function initMainMap() {
+  if (!window.L) { loadLeaflet(function(){ setTimeout(buildMainMap, 100); }); return; }
+  buildMainMap();
+}
+
+function buildMainMap() {
+  if (_mainMap) { _mainMap.invalidateSize(); loadMapSpots(); return; }
+  _mainMap = L.map('kztv-map', {zoomControl:true}).setView([48.8566, 2.3522], 13);
+  _satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution:'Esri'});
+  _planLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'OSM'});
+  _satLayer.addTo(_mainMap);
+  loadMapSpots();
+}
+
+function setMapLayer(type) {
+  if (!_mainMap) return;
+  if (type === 'sat') {
+    if (_planLayer) _mainMap.removeLayer(_planLayer);
+    if (_satLayer) _satLayer.addTo(_mainMap);
+    document.getElementById('map-sat-btn').style.background = 'rgba(123,47,255,.2)';
+    document.getElementById('map-sat-btn').style.color = '#c94dff';
+    document.getElementById('map-plan-btn').style.background = 'rgba(255,255,255,.05)';
+    document.getElementById('map-plan-btn').style.color = 'rgba(240,234,248,.5)';
+  } else {
+    if (_satLayer) _mainMap.removeLayer(_satLayer);
+    if (_planLayer) _planLayer.addTo(_mainMap);
+    document.getElementById('map-plan-btn').style.background = 'rgba(123,47,255,.2)';
+    document.getElementById('map-plan-btn').style.color = '#c94dff';
+    document.getElementById('map-sat-btn').style.background = 'rgba(255,255,255,.05)';
+    document.getElementById('map-sat-btn').style.color = 'rgba(240,234,248,.5)';
+  }
+}
+
+function loadMapSpots() {
+  if (!_mainMap) return;
+  _mainMap.eachLayer(function(l){ if (l._kztv) _mainMap.removeLayer(l); });
+  var spotIcon = function(active) { return L.divIcon({className:'',
+    html:'<div style="width:18px;height:18px;background:'+(active?'#7b2fff':'#555')+';border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.5);"></div>',
+    iconSize:[18,18],iconAnchor:[9,9]}); };
+  fetch(SB+'/rest/v1/spots?select=*&order=created_at.desc',
+    {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}})
+  .then(function(r){return r.json();})
+  .then(function(spots){
+    var bounds = [];
+    spots.forEach(function(s) {
+      if (!s.lat || !s.lng) return;
+      var m = L.marker([s.lat, s.lng], {icon: spotIcon(s.active)});
+      m._kztv = true;
+      m.on('click', function(){ showSpotPopup(s); });
+      m.addTo(_mainMap);
+      bounds.push([s.lat, s.lng]);
+    });
+    if (bounds.length) _mainMap.fitBounds(bounds, {padding:[30,30]});
+  }).catch(function(){});
+}
+
+function showSpotPopup(s) {
+  _mapSpot = s;
+  document.getElementById('sp-popup-name').textContent = s.label || 'Spot';
+  document.getElementById('sp-popup-addr').textContent = s.address || (s.lat ? s.lat.toFixed(5)+', '+s.lng.toFixed(5) : 'Sans position');
+  document.getElementById('sp-popup-scans').textContent = s.scans_count || 0;
+  document.getElementById('sp-popup-track').textContent = s.track_title || '—';
+  document.getElementById('sp-popup-url').textContent = s.real_url || '';
+  document.getElementById('spot-popup-overlay').style.display = 'block';
+  document.getElementById('spot-popup').style.display = 'block';
+}
+
+function closeSpotPopup() {
+  document.getElementById('spot-popup-overlay').style.display = 'none';
+  document.getElementById('spot-popup').style.display = 'none';
+}
+
+function editFromMap() {
+  if (!_mapSpot) return;
+  closeSpotPopup();
+  openEdit(_mapSpot);
+}
+
 </script>
 </body>
 </html>
