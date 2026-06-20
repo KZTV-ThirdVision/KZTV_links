@@ -1660,9 +1660,22 @@ function openMiniMap() {
   var sh = document.getElementById('minimap-sheet');
   if (!ov || !sh) return;
   ov.style.display = 'block'; sh.style.display = 'flex';
-  setTimeout(function() {
-    if (!window.L) { loadLeaflet(initMiniMap); } else { initMiniMap(); }
-  }, 100);
+
+  function doInit() {
+    setTimeout(function() { loadLeaflet(initMiniMap); }, 100);
+  }
+
+  // Si on a déjà une position (GPS ou manuelle), on l'utilise directement
+  if (_locLat && _locLng) { doInit(); return; }
+
+  // Sinon demander le GPS pour centrer sur la position actuelle
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    _locLat = pos.coords.latitude;
+    _locLng = pos.coords.longitude;
+    doInit();
+  }, function() {
+    doInit(); // fallback Paris si GPS refusé
+  }, {timeout: 4000, maximumAge: 30000});
 }
 
 function loadLeaflet(cb) {
