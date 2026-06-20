@@ -961,7 +961,18 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
   </div>
 
   <!-- CONFIG -->
-  <div class="panel" id="p-config">
+  <div class="panel" id="p-map">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;">
+    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;">SPOTS</div>
+    <div style="display:flex;gap:6px;">
+      <button id="map-sat-btn" onclick="setMapLayer('sat')" style="font-size:11px;padding:5px 10px;border-radius:8px;border:1px solid rgba(123,47,255,.4);background:rgba(123,47,255,.2);color:#c94dff;font-family:Inter,sans-serif;cursor:pointer;">Satellite</button>
+      <button id="map-plan-btn" onclick="setMapLayer('plan')" style="font-size:11px;padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(240,234,248,.5);font-family:Inter,sans-serif;cursor:pointer;">Plan</button>
+    </div>
+  </div>
+  <div id="kztv-map" style="width:100%;height:calc(100vh - 120px);"></div>
+</div>
+
+<div class="panel" id="p-config">
     <div class="stitle">Configuration</div>
     <div class="ci"><div class="cl">URL de base</div><div class="cv" style="font-size:12px">kztv-links-dusky.vercel.app/q</div></div>
     <div class="fld"><label>Changer le PIN (4 chiffres)</label><input type="number" id="new-pin" placeholder="1234"></div>
