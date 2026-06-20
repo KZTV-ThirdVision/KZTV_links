@@ -26,7 +26,12 @@ function tab(t) {
   var target = document.getElementById('p-'+t);
   if (target) target.className = 'panel on';
   if (t==='spots' && typeof loadSpots === 'function') loadSpots();
-  if (t==='map' && typeof initMainMap === 'function') initMainMap();
+  if (t==='map' && typeof initMainMap === 'function') {
+    setTimeout(function(){
+      initMainMap();
+      if (window._mainMap) window._mainMap.invalidateSize();
+    }, 50);
+  }
   if (t==='config' && typeof loadConfTsub === 'function') { loadConfTsub(); loadConfDomain(); loadGodMode(); }
   if (t==='scanner') {
     if (typeof loadYouTubeVideos === 'function' && typeof ytVideos !== 'undefined' && ytVideos.length===0) loadYouTubeVideos();
@@ -974,15 +979,15 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
   </div>
 
   <!-- CONFIG -->
-  <div class="panel" id="p-map">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;">
+  <div class="panel" id="p-map" style="display:flex;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;flex-shrink:0;">
     <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;">SPOTS</div>
     <div style="display:flex;gap:6px;">
       <button id="map-sat-btn" onclick="setMapLayer('sat')" style="font-size:11px;padding:5px 10px;border-radius:8px;border:1px solid rgba(123,47,255,.4);background:rgba(123,47,255,.2);color:#c94dff;font-family:Inter,sans-serif;cursor:pointer;">Satellite</button>
       <button id="map-plan-btn" onclick="setMapLayer('plan')" style="font-size:11px;padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(240,234,248,.5);font-family:Inter,sans-serif;cursor:pointer;">Plan</button>
     </div>
   </div>
-  <div id="kztv-map" style="width:100%;height:calc(100vh - 120px);"></div>
+  <div id="kztv-map" style="width:100%;flex:1;min-height:0;"></div>
 </div>
 
 <div class="panel" id="p-config">
@@ -1693,7 +1698,7 @@ function buildMainMap() {
   _mainMap = L.map('kztv-map', {zoomControl:false, tap:false, touchZoom:true});
   // Tuiles satellite Google (plus fiables sur mobile que Esri)
   _satLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-    attribution:'Google', maxZoom:20, tileSize:256
+    attribution:'Google', maxZoom:20, maxNativeZoom:19, tileSize:256
   });
   // Tuiles plan OSM
   _planLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1729,9 +1734,8 @@ function centerOnGPS(firstLoad) {
     // Marqueur position actuelle
     if (window._gpsMarker) _mainMap.removeLayer(window._gpsMarker);
     window._gpsMarker = L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
-      radius:8, fillColor:'#4fc3f7', color:'#fff', weight:2, fillOpacity:0.9
-    });
-    window._gpsMarker._kztv = true;
+      radius:9, fillColor:'#4fc3f7', color:'#fff', weight:2.5, fillOpacity:1
+    }).bindTooltip('Vous êtes ici', {permanent:false, direction:'top'});
     window._gpsMarker.addTo(_mainMap);
   }, function() {
     if (firstLoad) _mainMap.setView([48.8566, 2.3522], 13);
