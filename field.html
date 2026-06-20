@@ -837,9 +837,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
 <style>
-.maplibregl-ctrl-geolocate { display:flex !important; }
-.maplibregl-user-location-dot { background:#4fc3f7 !important; }
-.maplibregl-ctrl-bottom-right { z-index:5 !important; }
+.maplibregl-ctrl-bottom-right { z-index:5; }
 </style>
 </style>
 </head>
@@ -1776,15 +1774,6 @@ function buildMainMap() {
 
   // Navigation control
   _mainMap.addControl(new maplibregl.NavigationControl({showCompass:false}), 'bottom-right');
-  // GeolocateControl : point GPS natif MapLibre (comme Google Maps)
-  window._geolocate = new maplibregl.GeolocateControl({
-    positionOptions: {enableHighAccuracy:true},
-    trackUserLocation: false,
-    showUserLocation: true,
-    showAccuracyCircle: true,
-    fitBoundsOptions: {maxZoom:16}
-  });
-  _mainMap.addControl(window._geolocate, 'bottom-right');
 
   _mainMap.on('load', function() {
     _mapLoaded = true;
@@ -1807,28 +1796,35 @@ function buildMainMap() {
       _mainMap.on('mouseenter', layer, function(){ _mainMap.getCanvas().style.cursor='pointer'; });
       _mainMap.on('mouseleave', layer, function(){ _mainMap.getCanvas().style.cursor=''; });
     });
-    // Déclencher GPS automatiquement au chargement
-    setTimeout(function() {
-      if (window._geolocate) {
-        try { window._geolocate.trigger(); } catch(e) {}
-      }
-    }, 800);
+    // Centrer sur position GPS au chargement
+    setTimeout(function() { centerOnGPS(true); }, 300);
     loadMapSpots();
   });
 }
 
 function centerOnGPS(firstLoad) {
-  // Déclencher le GeolocateControl natif — affiche le point bleu ET centre la carte
-  if (window._geolocate) {
-    window._geolocate.trigger();
-    return;
-  }
-  // Fallback si le contrôle pas encore prêt
   navigator.geolocation.getCurrentPosition(function(pos) {
-    _mainMap.flyTo({center:[pos.coords.longitude, pos.coords.latitude], zoom:15, speed:1.5});
+    var lng = pos.coords.longitude, lat = pos.coords.latitude;
+    if (firstLoad) {
+      _mainMap.flyTo({center:[lng, lat], zoom:15, speed:1.2});
+    } else {
+      _mainMap.flyTo({center:[lng, lat], zoom:16, speed:1.5});
+    }
+    // Créer le marqueur position — PAS de position:absolute, MapLibre gère ça
+    if (window._gpsMarker) window._gpsMarker.remove();
+    var el = document.createElement('div');
+    el.style.width = '18px';
+    el.style.height = '18px';
+    el.style.backgroundColor = '#4fc3f7';
+    el.style.border = '3px solid #fff';
+    el.style.borderRadius = '50%';
+    el.style.boxShadow = '0 0 0 4px rgba(79,195,247,0.3)';
+    window._gpsMarker = new maplibregl.Marker({element: el, anchor:'center'})
+      .setLngLat([lng, lat])
+      .addTo(_mainMap);
   }, function() {
-    if (firstLoad && _mainMap) _mainMap.setCenter([2.3522,48.8566]);
-  });
+    if (firstLoad && _mainMap) _mainMap.flyTo({center:[2.3522, 48.8566], zoom:13});
+  }, {enableHighAccuracy:true, timeout:8000});
 }
 
 function setMapLayer(type) {
