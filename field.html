@@ -1118,10 +1118,16 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     <input type="text" id="pg-info" placeholder="France · third vision · 2026" style="font-size:16px;">
   </div>
 
-  <div class="fld" style="margin-bottom:16px;">
-    <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Image de fond (URL)</label>
-    <input type="text" id="pg-bg-url" placeholder="https://... ou pp.jpg" style="font-size:15px;">
-    <div style="font-size:11px;color:rgba(240,234,248,.25);margin-top:4px;">Colle une URL d'image. Laisse vide pour garder la photo actuelle.</div>
+  <div style="margin-bottom:16px;">
+    <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Image de fond</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+      <div id="pg-bg-preview" style="width:56px;height:56px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);flex-shrink:0;background-size:cover;background-position:center;"></div>
+      <div style="flex:1;">
+        <button onclick="document.getElementById('pg-bg-input').click()" class="cta sec" style="width:100%;padding:10px;font-size:13px;">📷 Choisir depuis la galerie</button>
+        <input type="file" id="pg-bg-input" accept="image/*" style="display:none;" onchange="handleBgPhoto(this)">
+        <div id="pg-bg-status" style="font-size:11px;color:rgba(240,234,248,.3);margin-top:4px;"></div>
+      </div>
+    </div>
   </div>
   <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Liens réseaux</div>
   <div class="fld" style="margin-bottom:8px;"><input type="text" id="pg-spotify" placeholder="🟢 Spotify URL" style="font-size:15px;"></div>
@@ -2054,6 +2060,39 @@ function debugPage() {
   dbg.textContent = info;
 }
 
+// ── PHOTO DE FOND ─────────────────────────────────────────
+var _pgBgData = null; // base64 de la photo sélectionnée
+
+function handleBgPhoto(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var status = document.getElementById('pg-bg-status');
+  status.textContent = 'Compression...';
+  var img = new Image();
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    img.src = e.target.result;
+    img.onload = function() {
+      // Redimensionner à max 1200px pour limiter la taille
+      var maxW = 1200;
+      var scale = Math.min(1, maxW / img.width);
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      _pgBgData = dataUrl;
+      // Aperçu
+      document.getElementById('pg-bg-preview').style.backgroundImage = "url('" + dataUrl + "')";
+      var kb = Math.round(dataUrl.length * 0.75 / 1024);
+      status.textContent = canvas.width + 'x' + canvas.height + 'px · ' + kb + ' KB ✓';
+      status.style.color = '#1ed760';
+    };
+  };
+  reader.readAsDataURL(file);
+}
+
 function extractYTId(input) {
   var val = input.value.trim();
   // Formats supportés :
@@ -2105,7 +2144,16 @@ function fillPageForm(c) {
   set('pg-instagram', lnks.instagram);
   set('pg-youtube', lnks.youtube);
   set('pg-tiktok', lnks.tiktok);
-  set('pg-bg-url', c.bg_photo_url);
+  // Charger l'aperçu de la photo de fond depuis Supabase
+  fetch(SB+'/rest/v1/settings?key=eq.kztv_page_bg&select=value',
+    {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if (d && d[0] && d[0].value) {
+      document.getElementById('pg-bg-preview').style.backgroundImage = "url('" + d[0].value + "')";
+      document.getElementById('pg-bg-status').textContent = 'Photo actuelle chargée';
+    }
+  }).catch(function(){});
   console.log('fillPageForm called with:', JSON.stringify(c));
 }
 
@@ -2124,6 +2172,27 @@ function setPgFmt(portrait) {
 }
 
 async function savePage() {
+  // Si une photo a été sélectionnée, l'uploader d'abord dans settings
+  if (_pgBgData) {
+    try {
+      var existing = await fetch(SB+'/rest/v1/settings?key=eq.kztv_page_bg',
+        {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
+      var exData = await existing.json();
+      if (exData && exData.length > 0) {
+        await fetch(SB+'/rest/v1/settings?key=eq.kztv_page_bg', {
+          method:'PATCH',
+          headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body: JSON.stringify({value: _pgBgData, updated_at: new Date().toISOString()})
+        });
+      } else {
+        await fetch(SB+'/rest/v1/settings', {
+          method:'POST',
+          headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body: JSON.stringify({key:'kztv_page_bg', value: _pgBgData})
+        });
+      }
+    } catch(e) {}
+  }
   var btn = document.getElementById('pg-save-btn');
   var st = document.getElementById('pg-status');
   btn.disabled = true; btn.textContent = 'Enregistrement...';
