@@ -24,7 +24,12 @@ function tab(t) {
   var panels = document.querySelectorAll('.panel');
   for (var j=0;j<panels.length;j++) panels[j].className = 'panel';
   var target = document.getElementById('p-'+t);
-  if (target) target.className = 'panel on';
+  if (target) {
+    target.className = 'panel on';
+    if (t === 'page') {
+      target.style.cssText += ';display:block!important;visibility:visible!important;opacity:1!important;';
+    }
+  }
   if (t==='spots' && typeof loadSpots === 'function') loadSpots();
   if (t==='page' && !_pgLoaded) { _pgLoaded=true; loadPageConfig(); }
   if (t==='map' && typeof initMainMap === 'function') {
