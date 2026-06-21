@@ -16,7 +16,7 @@ var DEFAULT_PIN = '1234';
 
 // tab() défini tôt pour être disponible dès le chargement
 function tab(t) {
-  var names = ['scanner','spots','map','config'];
+  var names = ['scanner','spots','map','config','page'];
   for (var i=0;i<names.length;i++) {
     var b = document.getElementById('tb-'+names[i]);
     if (b) b.className = 'tb' + (names[i]===t ? ' on' : '');
@@ -26,6 +26,7 @@ function tab(t) {
   var target = document.getElementById('p-'+t);
   if (target) target.className = 'panel on';
   if (t==='spots' && typeof loadSpots === 'function') loadSpots();
+  if (t==='page' && !_pgLoaded) { _pgLoaded=true; loadPageConfig(); }
   if (t==='map' && typeof initMainMap === 'function') {
     setTimeout(function() {
       if (window._mainMap && window._mapLoaded) {
@@ -872,6 +873,7 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     <button class="tb" id="tb-spots" onclick="tab('spots')">Spots</button>
     <button class="tb" id="tb-map" onclick="tab('map')">Map</button>
     <button class="tb" id="tb-config" onclick="tab('config')">Config</button>
+    <button class="tb" id="tb-page" onclick="tab('page')">Page</button>
   </div>
 
   <!-- SCANNER -->
@@ -1943,7 +1945,184 @@ function editFromMap() {
   openEdit(_mapSpot);
 }
 
+
+// ─── ONGLET PAGE ──────────────────────────────────────────
+var _pgCfg = {};
+var _pgMode = 'video';
+var _pgPortrait = false;
+
+async function loadPageConfig() {
+  try {
+    var r = await fetch(SB+'/rest/v1/settings?key=eq.kztv_page&select=value',
+      {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
+    var d = await r.json();
+    if (d && d[0]) {
+      _pgCfg = JSON.parse(d[0].value);
+      fillPageForm(_pgCfg);
+    }
+  } catch(e) {}
+}
+
+function fillPageForm(c) {
+  _pgMode = c.mode || 'video';
+  _pgPortrait = c.portrait || false;
+  setPgMode(_pgMode);
+  setPgFmt(_pgPortrait);
+  var set = function(id, val) { var el=document.getElementById(id); if(el&&val!==undefined) el.value=val||''; };
+  set('pg-yt-id', c.yt_id);
+  set('pg-title', c.title);
+  set('pg-subtitle', c.subtitle);
+  set('pg-track', c.track_title);
+  set('pg-artist', c.artist);
+  set('pg-info', c.info);
+  var lnks = c.links || {};
+  set('pg-spotify', lnks.spotify);
+  set('pg-instagram', lnks.instagram);
+  set('pg-youtube', lnks.youtube);
+  set('pg-tiktok', lnks.tiktok);
+}
+
+function setPgMode(m) {
+  _pgMode = m;
+  document.getElementById('pg-mode-video').style.background = m==='video' ? 'rgba(123,47,255,.3)' : '';
+  document.getElementById('pg-mode-video').style.borderColor = m==='video' ? 'rgba(123,47,255,.5)' : '';
+  document.getElementById('pg-mode-audio').style.background = m==='audio' ? 'rgba(123,47,255,.3)' : '';
+  document.getElementById('pg-mode-audio').style.borderColor = m==='audio' ? 'rgba(123,47,255,.5)' : '';
+}
+
+function setPgFmt(portrait) {
+  _pgPortrait = portrait;
+  document.getElementById('pg-fmt-land').style.background = !portrait ? 'rgba(123,47,255,.3)' : '';
+  document.getElementById('pg-fmt-port').style.background = portrait ? 'rgba(123,47,255,.3)' : '';
+}
+
+async function savePage() {
+  var btn = document.getElementById('pg-save-btn');
+  var st = document.getElementById('pg-status');
+  btn.disabled = true; btn.textContent = 'Enregistrement...';
+  var g = function(id){ var el=document.getElementById(id); return el?el.value.trim():''; };
+  var cfg = {
+    mode: _pgMode,
+    portrait: _pgPortrait,
+    yt_id: g('pg-yt-id'),
+    title: g('pg-title'),
+    subtitle: g('pg-subtitle'),
+    artist: g('pg-artist'),
+    track_title: g('pg-track'),
+    info: g('pg-info'),
+    bg_photo: 'pp.jpg',
+    links: {
+      spotify: g('pg-spotify'),
+      instagram: g('pg-instagram'),
+      youtube: g('pg-youtube'),
+      tiktok: g('pg-tiktok')
+    }
+  };
+  try {
+    await fetch(SB+'/rest/v1/settings?key=eq.kztv_page', {
+      method:'PATCH',
+      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify({value: JSON.stringify(cfg), updated_at: new Date().toISOString()})
+    });
+    btn.textContent = '✅ Enregistré';
+    st.textContent = 'Page mise à jour — recharge /kztv pour voir';
+    setTimeout(function(){ btn.disabled=false; btn.textContent='💾 Enregistrer la page'; st.textContent=''; }, 3000);
+  } catch(e) {
+    btn.disabled=false; btn.textContent='💾 Enregistrer la page';
+    st.textContent = 'Erreur: '+e.message; st.style.color='#ff4d6d';
+  }
+}
+
+// Charger au tab('page')
+var _pgLoaded = false;
+
 </script>
+
+<!-- ── PANEL PAGE ── -->
+<div class="panel" id="p-page">
+  <div style="padding:20px 16px 100px;">
+    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:18px;">PAGE KZTV</div>
+
+    <!-- Aperçu lien -->
+    <a href="/kztv" target="_blank" style="display:flex;align-items:center;gap:10px;background:rgba(123,47,255,.12);border:1px solid rgba(123,47,255,.3);border-radius:12px;padding:12px 14px;margin-bottom:20px;text-decoration:none;">
+      <span style="font-size:18px;">🔗</span>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#c94dff;">kztv-links-dusky.vercel.app/kztv</div>
+        <div style="font-size:11px;color:rgba(240,234,248,.35);margin-top:2px;">Ta page publique — ouvrir</div>
+      </div>
+    </a>
+
+    <!-- Mode vidéo/son -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Mode</div>
+      <div style="display:flex;gap:8px;">
+        <button id="pg-mode-video" onclick="setPgMode('video')" class="cta sec" style="flex:1;padding:10px;font-size:13px;">🎬 Clip</button>
+        <button id="pg-mode-audio" onclick="setPgMode('audio')" class="cta sec" style="flex:1;padding:10px;font-size:13px;">🎵 Son seul</button>
+      </div>
+    </div>
+
+    <!-- YouTube ID -->
+    <div class="fld" style="margin-bottom:12px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">ID YouTube</label>
+      <input type="text" id="pg-yt-id" placeholder="ex: dQw4w9WgXcQ" style="font-size:16px;">
+    </div>
+
+    <!-- Format vidéo -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Format vidéo</div>
+      <div style="display:flex;gap:8px;">
+        <button id="pg-fmt-land" onclick="setPgFmt(false)" class="cta sec" style="flex:1;padding:10px;font-size:13px;">⬛ 16/9</button>
+        <button id="pg-fmt-port" onclick="setPgFmt(true)" class="cta sec" style="flex:1;padding:10px;font-size:13px;">📱 Vertical</button>
+      </div>
+    </div>
+
+    <!-- Titre -->
+    <div class="fld" style="margin-bottom:12px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Titre (néon violet)</label>
+      <input type="text" id="pg-title" placeholder="NOUVELLE ÈRE" style="font-size:16px;">
+    </div>
+
+    <!-- Sous-titre -->
+    <div class="fld" style="margin-bottom:12px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Sous-titre (plusieurs lignes avec \n)</label>
+      <textarea id="pg-subtitle" rows="2" placeholder="Rap technique. Indépendant.&#10;France · 2026" style="font-size:15px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;color:#f0eaf8;font-family:Inter,sans-serif;resize:none;"></textarea>
+    </div>
+
+    <!-- Track info -->
+    <div class="fld" style="margin-bottom:12px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Titre du son</label>
+      <input type="text" id="pg-track" placeholder="KZTV0 (La der)" style="font-size:16px;">
+    </div>
+    <div class="fld" style="margin-bottom:12px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Artiste</label>
+      <input type="text" id="pg-artist" placeholder="KZTV" style="font-size:16px;">
+    </div>
+    <div class="fld" style="margin-bottom:16px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Info (pays · label · année)</label>
+      <input type="text" id="pg-info" placeholder="France · third vision · 2026" style="font-size:16px;">
+    </div>
+
+    <!-- Liens réseaux -->
+    <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Liens réseaux</div>
+    <div class="fld" style="margin-bottom:8px;">
+      <input type="text" id="pg-spotify" placeholder="🟢 Spotify URL" style="font-size:15px;">
+    </div>
+    <div class="fld" style="margin-bottom:8px;">
+      <input type="text" id="pg-instagram" placeholder="🟣 Instagram URL" style="font-size:15px;">
+    </div>
+    <div class="fld" style="margin-bottom:8px;">
+      <input type="text" id="pg-youtube" placeholder="🔴 YouTube URL" style="font-size:15px;">
+    </div>
+    <div class="fld" style="margin-bottom:20px;">
+      <input type="text" id="pg-tiktok" placeholder="⚫ TikTok URL" style="font-size:15px;">
+    </div>
+
+    <!-- Sauvegarder -->
+    <button onclick="savePage()" class="cta" style="width:100%;margin-bottom:12px;" id="pg-save-btn">💾 Enregistrer la page</button>
+    <div id="pg-status" style="font-size:12px;color:#c94dff;text-align:center;min-height:18px;"></div>
+  </div>
+</div>
+
 </body>
 </html><!-- MINIMAP MODAL -->
 <div id="minimap-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;"></div>
