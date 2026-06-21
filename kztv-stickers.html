@@ -192,15 +192,17 @@ async function loadConfig() {
     if (d && d[0]) _cfg = JSON.parse(d[0].value);
   } catch(e) {}
   // Charger la photo de fond depuis settings séparée (base64)
+  var _bgLoaded = false;
   try {
     var r2 = await fetch(SB+'/rest/v1/settings?key=eq.kztv_page_bg&select=value',
       {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
     var d2 = await r2.json();
     if (d2 && d2[0] && d2[0].value) {
       document.getElementById('bg-img').style.backgroundImage = "url('" + d2[0].value + "')";
+      _bgLoaded = true;
     }
   } catch(e) {}
-  applyConfig();
+  applyConfig(_bgLoaded);
 }
 
 function applyConfig() {
