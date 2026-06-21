@@ -1049,6 +1049,8 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
 
 <!-- ── PANEL PAGE ── -->
 <div class="panel" id="p-page">
+  <button onclick="debugPage()" style="position:sticky;top:0;z-index:99;width:100%;padding:16px;background:#ff0000;color:#fff;font-size:18px;font-weight:900;border:none;cursor:pointer;">🔴 DEBUG PAGE — APPUIE ICI</button>
+  <div id="pg-debug" style="background:#1a0a00;border:2px solid #ff0;padding:12px;font-size:12px;color:#ff0;font-family:monospace;display:none;white-space:pre-wrap;margin-bottom:10px;"></div>
   <div style="padding:20px 16px 100px;">
     <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:18px;">PAGE KZTV</div>
 
@@ -2033,6 +2035,25 @@ function editFromMap() {
 
 
 // ─── ONGLET PAGE ──────────────────────────────────────────
+function debugPage() {
+  var dbg = document.getElementById('pg-debug');
+  dbg.style.display = dbg.style.display === 'none' ? 'block' : 'none';
+  var panel = document.getElementById('p-page');
+  var info = [
+    'p-page className: ' + (panel ? panel.className : 'NOT FOUND'),
+    'p-page display: ' + (panel ? getComputedStyle(panel).display : 'N/A'),
+    'p-page offsetHeight: ' + (panel ? panel.offsetHeight : 'N/A'),
+    '_pgLoaded: ' + _pgLoaded,
+    '_pgCfg keys: ' + Object.keys(_pgCfg).join(', '),
+    'SB ok: ' + (typeof SB !== "undefined"),
+    'tab fn ok: ' + (typeof tab === "function"),
+    'savePage fn ok: ' + (typeof savePage === "function"),
+    'loadPageConfig fn ok: ' + (typeof loadPageConfig === "function"),
+    '#app display: ' + getComputedStyle(document.getElementById('app')).display,
+  ].join('\n');
+  dbg.textContent = info;
+}
+
 function extractYTId(input) {
   var val = input.value.trim();
   // Formats supportés :
