@@ -325,29 +325,14 @@ async function confirmAdjust() {
 }
 
 function addFromMap() {
-  // Prendre la position GPS et démarrer l'ajustement sans ID (nouveau spot)
-  setStatus('','');
-  navigator.geolocation.getCurrentPosition(function(pos) {
-    _map.flyTo({center:[pos.coords.longitude,pos.coords.latitude],zoom:17});
-    setTimeout(function(){
-      _adjustId = null;  // null = nouveau spot
-      _adjustMode = true;
-      document.getElementById('map-crosshair').style.display = 'block';
-      document.getElementById('map-bar').style.display = 'flex';
-      document.getElementById('map-addr').textContent = 'Déplacez la carte pour ajuster';
-      document.getElementById('add-btn').style.display = 'none';
-      _map.on('move', onMapMove);
-    }, 600);
-  }, function(){
-    // Si pas de GPS, centrer sur la vue actuelle
-    _adjustId = null;
-    _adjustMode = true;
-    document.getElementById('map-crosshair').style.display = 'block';
-    document.getElementById('map-bar').style.display = 'flex';
-    document.getElementById('map-addr').textContent = 'Déplacez la carte pour placer le sticker';
-    document.getElementById('add-btn').style.display = 'none';
-    _map.on('move', onMapMove);
-  }, {enableHighAccuracy:true,timeout:5000});
+  // Poser le crosshair exactement là où la map est déjà centrée, sans bouger
+  _adjustId = null;
+  _adjustMode = true;
+  document.getElementById('map-crosshair').style.display = 'block';
+  document.getElementById('map-bar').style.display = 'flex';
+  document.getElementById('map-addr').textContent = 'Déplacez la carte pour placer le sticker';
+  document.getElementById('add-btn').style.display = 'none';
+  _map.on('move', onMapMove);
 }
 
 function cancelAdjust() {
