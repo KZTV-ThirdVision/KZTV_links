@@ -169,8 +169,14 @@ function initMap() {
     container: 'sticker-map',
     style: {
       version:8,
-      sources:{'sat':{type:'raster',tiles:['https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'],tileSize:256,maxzoom:20}},
-      layers:[{id:'sat',type:'raster',source:'sat'}]
+      sources:{
+        'sat':{type:'raster',tiles:['https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'],tileSize:256,maxzoom:20},
+        'osm':{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19}
+      },
+      layers:[
+        {id:'sat-layer',type:'raster',source:'sat'},
+        {id:'osm-layer',type:'raster',source:'osm',layout:{visibility:'none'}}
+      ]
     },
     center:[2.3522,48.8566], zoom:13,
     attributionControl:false
@@ -212,39 +218,9 @@ function toggleMapStyle() {
   _mapStyle = _mapStyle === 'sat' ? 'plan' : 'sat';
   var btn = document.getElementById('style-btn');
   btn.textContent = _mapStyle === 'sat' ? '🛰' : '🗺';
-
-  var tileUrl = _mapStyle === 'sat'
-    ? 'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
-    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-  var srcId = _mapStyle === 'sat' ? 'sat' : 'osm';
-
-  // Snapshot des données avant changement de style
-  var gpsData = {type:'FeatureCollection',features:_gpsFeature?[_gpsFeature]:[]};
-  var stickerSnapshot = _stickerData;
-
-  _map.setStyle({
-    version:8,
-    sources:{[srcId]:{type:'raster',tiles:[tileUrl],tileSize:256,maxzoom:20}},
-    layers:[{id:'bg',type:'raster',source:srcId}]
-  });
-
-  _map.once('style.load', function(){
-    // GPS
-    _map.addSource('gps-pos',{type:'geojson',data:gpsData});
-    _map.addLayer({id:'gps-halo',type:'circle',source:'gps-pos',paint:{'circle-radius':14,'circle-color':'rgba(79,195,247,0.25)','circle-stroke-width':0}});
-    _map.addLayer({id:'gps-dot',type:'circle',source:'gps-pos',paint:{'circle-radius':8,'circle-color':'#4fc3f7','circle-stroke-width':3,'circle-stroke-color':'#fff'}});
-    // Stickers — réinjecter les données en mémoire directement, pas de refetch
-    _map.addSource('stickers',{type:'geojson',data:stickerSnapshot});
-    _map.addLayer({id:'stickers-layer',type:'circle',source:'stickers',paint:{'circle-radius':10,'circle-color':'#2acc5a','circle-stroke-width':2,'circle-stroke-color':'#fff'}});
-    _map.addLayer({id:'stickers-inactive',type:'circle',source:'stickers',filter:['==','active',false],paint:{'circle-radius':10,'circle-color':'#555','circle-stroke-width':2,'circle-stroke-color':'#888'}});
-    // Remettre les click handlers
-    _map.on('click','stickers-layer',function(e){
-      var props = e.features[0].properties;
-      startAdjust(JSON.parse(props._raw));
-    });
-    _map.on('mouseenter','stickers-layer',function(){ _map.getCanvas().style.cursor='pointer'; });
-    _map.on('mouseleave','stickers-layer',function(){ _map.getCanvas().style.cursor=''; });
-  });
+  // Juste changer la visibilité — aucun setStyle, rien n'est détruit
+  _map.setLayoutProperty('sat-layer', 'visibility', _mapStyle === 'sat' ? 'visible' : 'none');
+  _map.setLayoutProperty('osm-layer', 'visibility', _mapStyle === 'plan' ? 'visible' : 'none');
 }
 
 var _gpsFeature = null;
