@@ -1129,6 +1129,11 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
       </div>
     </div>
   </div>
+  <div class="fld" style="margin-bottom:16px;">
+    <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Lien Spotify du son (cover auto)</label>
+    <input type="text" id="pg-spotify-track" placeholder="https://open.spotify.com/track/..." style="font-size:15px;">
+    <div style="font-size:11px;color:rgba(240,234,248,.25);margin-top:4px;">Récupère la cover + rend le bloc son cliquable</div>
+  </div>
   <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Liens réseaux</div>
   <div class="fld" style="margin-bottom:8px;"><input type="text" id="pg-spotify" placeholder="🟢 Spotify URL" style="font-size:15px;"></div>
   <div class="fld" style="margin-bottom:8px;"><input type="text" id="pg-instagram" placeholder="🟣 Instagram URL" style="font-size:15px;"></div>
@@ -2144,6 +2149,7 @@ function fillPageForm(c) {
   set('pg-instagram', lnks.instagram);
   set('pg-youtube', lnks.youtube);
   set('pg-tiktok', lnks.tiktok);
+  set('pg-spotify-track', c.spotify_track || (lnks && lnks.spotify));
   // Charger l'aperçu de la photo de fond depuis Supabase
   fetch(SB+'/rest/v1/settings?key=eq.kztv_page_bg&select=value',
     {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}})
@@ -2208,8 +2214,9 @@ async function savePage() {
     info: g('pg-info'),
     bg_photo: 'pp.jpg',
     bg_photo_url: g('pg-bg-url') || null,
+    spotify_track: g('pg-spotify-track'),
     links: {
-      spotify: g('pg-spotify'),
+      spotify: g('pg-spotify-track') || g('pg-spotify'),
       instagram: g('pg-instagram'),
       youtube: g('pg-youtube'),
       tiktok: g('pg-tiktok')
