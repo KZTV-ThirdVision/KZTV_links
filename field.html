@@ -1947,6 +1947,20 @@ function editFromMap() {
 
 
 // ─── ONGLET PAGE ──────────────────────────────────────────
+function extractYTId(input) {
+  var val = input.value.trim();
+  // Formats supportés :
+  // https://youtu.be/VIDEO_ID
+  // https://youtu.be/VIDEO_ID?si=...
+  // https://www.youtube.com/watch?v=VIDEO_ID
+  // https://youtube.com/shorts/VIDEO_ID
+  var match = val.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/|embed\/))([A-Za-z0-9_-]{11})/);
+  if (match) {
+    input.value = match[1];
+    input.style.color = '#1ed760'; // vert = ID extrait
+    setTimeout(function(){ input.style.color = ''; }, 1500);
+  }
+}
 var _pgCfg = {};
 var _pgMode = 'video';
 var _pgPortrait = false;
@@ -2064,7 +2078,7 @@ var _pgLoaded = false;
     <!-- YouTube ID -->
     <div class="fld" style="margin-bottom:12px;">
       <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">ID YouTube</label>
-      <input type="text" id="pg-yt-id" placeholder="ex: dQw4w9WgXcQ" style="font-size:16px;">
+      <input type="text" id="pg-yt-id" placeholder="Colle n'importe quel lien YouTube" style="font-size:16px;" oninput="extractYTId(this)">
     </div>
 
     <!-- Format vidéo -->
