@@ -1889,15 +1889,33 @@ function buildMainMap() {
       paint:{'circle-radius':8,'circle-color':'#4fc3f7','circle-stroke-width':3,'circle-stroke-color':'#fff'}
     });
     _mainMap.addLayer({ id:'spots-active', type:'circle', source:'spots',
-      filter:['==','active',true],
+      filter:['all',['==','active',true],['!=','type','sticker']],
       paint:{'circle-radius':9,'circle-color':'#7b2fff','circle-stroke-width':2,'circle-stroke-color':'#fff'}
     });
-    _mainMap.addLayer({ id:'spots-inactive', type:'circle', source:'spots',
-      filter:['==','active',false],
+    _mainMap.addLayer({ id:'spots-inactive-qr', type:'circle', source:'spots',
+      filter:['all',['==','active',false],['!=','type','sticker']],
       paint:{'circle-radius':9,'circle-color':'#555','circle-stroke-width':2,'circle-stroke-color':'#fff'}
     });
+    // Stickers (points verts)
+    _mainMap.addLayer({ id:'stickers-active', type:'circle', source:'spots',
+      filter:['all',['==','active',true],['==','type','sticker']],
+      paint:{'circle-radius':9,'circle-color':'#2acc5a','circle-stroke-width':2,'circle-stroke-color':'#fff'}
+    });
+    _mainMap.addLayer({ id:'stickers-inactive', type:'circle', source:'spots',
+      filter:['all',['==','active',false],['==','type','sticker']],
+      paint:{'circle-radius':9,'circle-color':'#2a5a3a','circle-stroke-width':2,'circle-stroke-color':'#888'}
+    });
+    // Click sur sticker
+    ['stickers-active','stickers-inactive'].forEach(function(layer) {
+      _mainMap.on('click', layer, function(e) {
+        var props = e.features[0].properties;
+        showSpotPopup(JSON.parse(props._raw));
+      });
+      _mainMap.on('mouseenter', layer, function(){ _mainMap.getCanvas().style.cursor='pointer'; });
+      _mainMap.on('mouseleave', layer, function(){ _mainMap.getCanvas().style.cursor=''; });
+    });
     // Click sur spot
-    ['spots-active','spots-inactive'].forEach(function(layer) {
+    ['spots-active','spots-inactive-qr'].forEach(function(layer) {
       _mainMap.on('click', layer, function(e) {
         var props = e.features[0].properties;
         showSpotPopup(JSON.parse(props._raw));
