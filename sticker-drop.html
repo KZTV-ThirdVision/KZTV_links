@@ -106,6 +106,15 @@ h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,23
 <!-- Panel Map -->
 <div class="panel" id="panel-map">
   <div id="sticker-map"></div>
+  <!-- Bouton + pour ajouter un sticker depuis la map -->
+  <button id="add-btn" onclick="addFromMap()" style="
+    position:absolute;top:14px;right:14px;z-index:10;
+    width:48px;height:48px;border-radius:50%;border:none;
+    background:linear-gradient(135deg,#7b2fff,#c94dff);
+    color:#fff;font-size:26px;cursor:pointer;
+    box-shadow:0 4px 16px rgba(123,47,255,.5);
+    display:flex;align-items:center;justify-content:center;
+  ">＋</button>
   <div id="map-crosshair">📍</div>
   <div id="map-bar">
     <div id="map-addr">Déplacez la carte pour ajuster</div>
@@ -212,7 +221,6 @@ function onMapMove() {
 async function confirmAdjust() {
   var c = _map.getCenter();
   var lat = c.lat, lng = c.lng;
-  // Géocodage inversé
   var address = '';
   try {
     var r = await fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lng+'&format=json&accept-language=fr');
@@ -222,18 +230,55 @@ async function confirmAdjust() {
   } catch(e){}
 
   try {
-    await fetch(SB+'/rest/v1/spots?id=eq.'+_adjustId, {
-      method:'PATCH',
-      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({lat:lat,lng:lng,label:address||('Sticker '+new Date().toLocaleDateString('fr-FR'))})
-    });
+    if (_adjustId) {
+      // Mise à jour position existante
+      await fetch(SB+'/rest/v1/spots?id=eq.'+_adjustId, {
+        method:'PATCH',
+        headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+        body:JSON.stringify({lat:lat,lng:lng,label:address||('Sticker '+new Date().toLocaleDateString('fr-FR'))})
+      });
+      document.getElementById('map-addr').textContent = '✅ Position mise à jour';
+    } else {
+      // Nouveau sticker depuis la map
+      await fetch(SB+'/rest/v1/spots', {
+        method:'POST',
+        headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+        body:JSON.stringify({lat:lat,lng:lng,address:address,label:address||('Sticker '+new Date().toLocaleDateString('fr-FR')),type:'sticker',active:true,scans_count:0})
+      });
+      document.getElementById('map-addr').textContent = '✅ Sticker ajouté';
+    }
     if (navigator.vibrate) navigator.vibrate([50,30,100]);
-    document.getElementById('map-addr').textContent = '✅ Position mise à jour';
     setTimeout(cancelAdjust, 1000);
     loadStickerMarkers();
   } catch(e) {
     document.getElementById('map-addr').textContent = '❌ Erreur';
   }
+}
+
+function addFromMap() {
+  // Prendre la position GPS et démarrer l'ajustement sans ID (nouveau spot)
+  setStatus('','');
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    _map.flyTo({center:[pos.coords.longitude,pos.coords.latitude],zoom:17});
+    setTimeout(function(){
+      _adjustId = null;  // null = nouveau spot
+      _adjustMode = true;
+      document.getElementById('map-crosshair').style.display = 'block';
+      document.getElementById('map-bar').style.display = 'flex';
+      document.getElementById('map-addr').textContent = 'Déplacez la carte pour ajuster';
+      document.getElementById('add-btn').style.display = 'none';
+      _map.on('move', onMapMove);
+    }, 600);
+  }, function(){
+    // Si pas de GPS, centrer sur la vue actuelle
+    _adjustId = null;
+    _adjustMode = true;
+    document.getElementById('map-crosshair').style.display = 'block';
+    document.getElementById('map-bar').style.display = 'flex';
+    document.getElementById('map-addr').textContent = 'Déplacez la carte pour placer le sticker';
+    document.getElementById('add-btn').style.display = 'none';
+    _map.on('move', onMapMove);
+  }, {enableHighAccuracy:true,timeout:5000});
 }
 
 function cancelAdjust() {
@@ -242,6 +287,7 @@ function cancelAdjust() {
   _map.off('move', onMapMove);
   document.getElementById('map-crosshair').style.display = 'none';
   document.getElementById('map-bar').style.display = 'none';
+  document.getElementById('add-btn').style.display = 'flex';
 }
 
 // ── DROP ──
