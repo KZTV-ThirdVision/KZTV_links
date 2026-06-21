@@ -1047,6 +1047,92 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
   </div>
 </div>
 
+<!-- ── PANEL PAGE ── -->
+<div class="panel" id="p-page">
+  <div style="padding:20px 16px 100px;">
+    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:18px;">PAGE KZTV</div>
+
+    <!-- Aperçu lien -->
+    <a href="/kztv" target="_blank" style="display:flex;align-items:center;gap:10px;background:rgba(123,47,255,.12);border:1px solid rgba(123,47,255,.3);border-radius:12px;padding:12px 14px;margin-bottom:20px;text-decoration:none;">
+      <span style="font-size:18px;">🔗</span>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#c94dff;">kztv-links-dusky.vercel.app/kztv</div>
+        <div style="font-size:11px;color:rgba(240,234,248,.35);margin-top:2px;">Ta page publique — ouvrir</div>
+      </div>
+    </a>
+
+    <!-- Mode vidéo/son -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Mode</div>
+      <div style="display:flex;gap:8px;">
+        <button id="pg-mode-video" onclick="setPgMode('video')" class="cta sec" style="flex:1;padding:10px;font-size:13px;">🎬 Clip</button>
+        <button id="pg-mode-audio" onclick="setPgMode('audio')" class="cta sec" style="flex:1;padding:10px;font-size:13px;">🎵 Son seul</button>
+      </div>
+    </div>
+
+    <!-- YouTube ID -->
+    <div class="fld" style="margin-bottom:12px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">ID YouTube</label>
+      <input type="text" id="pg-yt-id" placeholder="Colle n'importe quel lien YouTube" style="font-size:16px;" oninput="extractYTId(this)">
+    </div>
+
+    <!-- Format vidéo -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Format vidéo</div>
+      <div style="display:flex;gap:8px;">
+        <button id="pg-fmt-land" onclick="setPgFmt(false)" class="cta sec" style="flex:1;padding:10px;font-size:13px;">⬛ 16/9</button>
+        <button id="pg-fmt-port" onclick="setPgFmt(true)" class="cta sec" style="flex:1;padding:10px;font-size:13px;">📱 Vertical</button>
+      </div>
+    </div>
+
+    <!-- Titre -->
+    <div class="fld" style="margin-bottom:12px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Titre (néon violet)</label>
+      <input type="text" id="pg-title" placeholder="NOUVELLE ÈRE" style="font-size:16px;">
+    </div>
+
+    <!-- Sous-titre -->
+    <div class="fld" style="margin-bottom:12px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Sous-titre (plusieurs lignes avec \n)</label>
+      <textarea id="pg-subtitle" rows="2" placeholder="Rap technique. Indépendant.&#10;France · 2026" style="font-size:15px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;color:#f0eaf8;font-family:Inter,sans-serif;resize:none;"></textarea>
+    </div>
+
+    <!-- Track info -->
+    <div class="fld" style="margin-bottom:12px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Titre du son</label>
+      <input type="text" id="pg-track" placeholder="KZTV0 (La der)" style="font-size:16px;">
+    </div>
+    <div class="fld" style="margin-bottom:12px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Artiste</label>
+      <input type="text" id="pg-artist" placeholder="KZTV" style="font-size:16px;">
+    </div>
+    <div class="fld" style="margin-bottom:16px;">
+      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Info (pays · label · année)</label>
+      <input type="text" id="pg-info" placeholder="France · third vision · 2026" style="font-size:16px;">
+    </div>
+
+    <!-- Liens réseaux -->
+    <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Liens réseaux</div>
+    <div class="fld" style="margin-bottom:8px;">
+      <input type="text" id="pg-spotify" placeholder="🟢 Spotify URL" style="font-size:15px;">
+    </div>
+    <div class="fld" style="margin-bottom:8px;">
+      <input type="text" id="pg-instagram" placeholder="🟣 Instagram URL" style="font-size:15px;">
+    </div>
+    <div class="fld" style="margin-bottom:8px;">
+      <input type="text" id="pg-youtube" placeholder="🔴 YouTube URL" style="font-size:15px;">
+    </div>
+    <div class="fld" style="margin-bottom:20px;">
+      <input type="text" id="pg-tiktok" placeholder="⚫ TikTok URL" style="font-size:15px;">
+    </div>
+
+    <!-- Sauvegarder -->
+    <button onclick="savePage()" class="cta" style="width:100%;margin-bottom:12px;" id="pg-save-btn">💾 Enregistrer la page</button>
+    <div id="pg-status" style="font-size:12px;color:#c94dff;text-align:center;min-height:18px;"></div>
+  </div>
+</div>
+
+
 <div id="notif"></div>
 
 <!-- QR CODE MODAL -->
@@ -2052,90 +2138,6 @@ var _pgLoaded = false;
 
 </script>
 
-<!-- ── PANEL PAGE ── -->
-<div class="panel" id="p-page">
-  <div style="padding:20px 16px 100px;">
-    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,234,248,.28);font-weight:600;margin-bottom:18px;">PAGE KZTV</div>
-
-    <!-- Aperçu lien -->
-    <a href="/kztv" target="_blank" style="display:flex;align-items:center;gap:10px;background:rgba(123,47,255,.12);border:1px solid rgba(123,47,255,.3);border-radius:12px;padding:12px 14px;margin-bottom:20px;text-decoration:none;">
-      <span style="font-size:18px;">🔗</span>
-      <div>
-        <div style="font-size:13px;font-weight:600;color:#c94dff;">kztv-links-dusky.vercel.app/kztv</div>
-        <div style="font-size:11px;color:rgba(240,234,248,.35);margin-top:2px;">Ta page publique — ouvrir</div>
-      </div>
-    </a>
-
-    <!-- Mode vidéo/son -->
-    <div style="margin-bottom:16px;">
-      <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Mode</div>
-      <div style="display:flex;gap:8px;">
-        <button id="pg-mode-video" onclick="setPgMode('video')" class="cta sec" style="flex:1;padding:10px;font-size:13px;">🎬 Clip</button>
-        <button id="pg-mode-audio" onclick="setPgMode('audio')" class="cta sec" style="flex:1;padding:10px;font-size:13px;">🎵 Son seul</button>
-      </div>
-    </div>
-
-    <!-- YouTube ID -->
-    <div class="fld" style="margin-bottom:12px;">
-      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">ID YouTube</label>
-      <input type="text" id="pg-yt-id" placeholder="Colle n'importe quel lien YouTube" style="font-size:16px;" oninput="extractYTId(this)">
-    </div>
-
-    <!-- Format vidéo -->
-    <div style="margin-bottom:16px;">
-      <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Format vidéo</div>
-      <div style="display:flex;gap:8px;">
-        <button id="pg-fmt-land" onclick="setPgFmt(false)" class="cta sec" style="flex:1;padding:10px;font-size:13px;">⬛ 16/9</button>
-        <button id="pg-fmt-port" onclick="setPgFmt(true)" class="cta sec" style="flex:1;padding:10px;font-size:13px;">📱 Vertical</button>
-      </div>
-    </div>
-
-    <!-- Titre -->
-    <div class="fld" style="margin-bottom:12px;">
-      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Titre (néon violet)</label>
-      <input type="text" id="pg-title" placeholder="NOUVELLE ÈRE" style="font-size:16px;">
-    </div>
-
-    <!-- Sous-titre -->
-    <div class="fld" style="margin-bottom:12px;">
-      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Sous-titre (plusieurs lignes avec \n)</label>
-      <textarea id="pg-subtitle" rows="2" placeholder="Rap technique. Indépendant.&#10;France · 2026" style="font-size:15px;width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;color:#f0eaf8;font-family:Inter,sans-serif;resize:none;"></textarea>
-    </div>
-
-    <!-- Track info -->
-    <div class="fld" style="margin-bottom:12px;">
-      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Titre du son</label>
-      <input type="text" id="pg-track" placeholder="KZTV0 (La der)" style="font-size:16px;">
-    </div>
-    <div class="fld" style="margin-bottom:12px;">
-      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Artiste</label>
-      <input type="text" id="pg-artist" placeholder="KZTV" style="font-size:16px;">
-    </div>
-    <div class="fld" style="margin-bottom:16px;">
-      <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Info (pays · label · année)</label>
-      <input type="text" id="pg-info" placeholder="France · third vision · 2026" style="font-size:16px;">
-    </div>
-
-    <!-- Liens réseaux -->
-    <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Liens réseaux</div>
-    <div class="fld" style="margin-bottom:8px;">
-      <input type="text" id="pg-spotify" placeholder="🟢 Spotify URL" style="font-size:15px;">
-    </div>
-    <div class="fld" style="margin-bottom:8px;">
-      <input type="text" id="pg-instagram" placeholder="🟣 Instagram URL" style="font-size:15px;">
-    </div>
-    <div class="fld" style="margin-bottom:8px;">
-      <input type="text" id="pg-youtube" placeholder="🔴 YouTube URL" style="font-size:15px;">
-    </div>
-    <div class="fld" style="margin-bottom:20px;">
-      <input type="text" id="pg-tiktok" placeholder="⚫ TikTok URL" style="font-size:15px;">
-    </div>
-
-    <!-- Sauvegarder -->
-    <button onclick="savePage()" class="cta" style="width:100%;margin-bottom:12px;" id="pg-save-btn">💾 Enregistrer la page</button>
-    <div id="pg-status" style="font-size:12px;color:#c94dff;text-align:center;min-height:18px;"></div>
-  </div>
-</div>
 
 </body>
 </html><!-- MINIMAP MODAL -->
