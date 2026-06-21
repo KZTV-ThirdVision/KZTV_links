@@ -1118,6 +1118,11 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     <input type="text" id="pg-info" placeholder="France · third vision · 2026" style="font-size:16px;">
   </div>
 
+  <div class="fld" style="margin-bottom:16px;">
+    <label style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.05em;">Image de fond (URL)</label>
+    <input type="text" id="pg-bg-url" placeholder="https://... ou pp.jpg" style="font-size:15px;">
+    <div style="font-size:11px;color:rgba(240,234,248,.25);margin-top:4px;">Colle une URL d'image. Laisse vide pour garder la photo actuelle.</div>
+  </div>
   <div style="font-size:11px;color:rgba(240,234,248,.35);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Liens réseaux</div>
   <div class="fld" style="margin-bottom:8px;"><input type="text" id="pg-spotify" placeholder="🟢 Spotify URL" style="font-size:15px;"></div>
   <div class="fld" style="margin-bottom:8px;"><input type="text" id="pg-instagram" placeholder="🟣 Instagram URL" style="font-size:15px;"></div>
@@ -2100,6 +2105,7 @@ function fillPageForm(c) {
   set('pg-instagram', lnks.instagram);
   set('pg-youtube', lnks.youtube);
   set('pg-tiktok', lnks.tiktok);
+  set('pg-bg-url', c.bg_photo_url);
   console.log('fillPageForm called with:', JSON.stringify(c));
 }
 
@@ -2132,6 +2138,7 @@ async function savePage() {
     track_title: g('pg-track'),
     info: g('pg-info'),
     bg_photo: 'pp.jpg',
+    bg_photo_url: g('pg-bg-url') || null,
     links: {
       spotify: g('pg-spotify'),
       instagram: g('pg-instagram'),
