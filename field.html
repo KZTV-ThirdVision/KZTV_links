@@ -1982,7 +1982,7 @@ function loadMapSpots() {
     spots.forEach(function(s) {
       if (!s.lat || !s.lng) return;
       features.push({type:'Feature',geometry:{type:'Point',coordinates:[s.lng,s.lat]},
-        properties:{active:s.active, _raw:JSON.stringify(s)}});
+        properties:{active:s.active, type:s.type||'qr', _raw:JSON.stringify(s)}});
       if (!bounds) bounds=[[s.lng,s.lat],[s.lng,s.lat]];
       else {
         bounds[0][0]=Math.min(bounds[0][0],s.lng); bounds[0][1]=Math.min(bounds[0][1],s.lat);
