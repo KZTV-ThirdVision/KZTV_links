@@ -267,9 +267,6 @@ function loadStickerMarkers() {
     var fc = {type:'FeatureCollection',features:features};
     _stickerData = fc;
     _map.getSource('stickers').setData(fc);
-    if (features.length) {
-      _map.flyTo({center:features[0].geometry.coordinates,zoom:15});
-    }
   }).catch(function(){});
 }
 
@@ -312,14 +309,6 @@ async function confirmAdjust() {
         body:JSON.stringify({lat:lat,lng:lng,label:address||('Sticker '+new Date().toLocaleDateString('fr-FR'))})
       });
       document.getElementById('map-addr').textContent = '✅ Position mise à jour';
-    } else {
-      // Nouveau sticker depuis la map
-      await fetch(SB+'/rest/v1/spots', {
-        method:'POST',
-        headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-        body:JSON.stringify({lat:lat,lng:lng,address:address,label:address||('Sticker '+new Date().toLocaleDateString('fr-FR')),type:'sticker',active:true,scans_count:0})
-      });
-      document.getElementById('map-addr').textContent = '✅ Sticker ajouté';
     }
     if (navigator.vibrate) navigator.vibrate([50,30,100]);
     setTimeout(cancelAdjust, 1000);
