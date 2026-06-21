@@ -206,33 +206,44 @@ function initMap() {
 }
 
 var _mapStyle = 'sat';
+var _stickerData = {type:'FeatureCollection',features:[]};
+
 function toggleMapStyle() {
   _mapStyle = _mapStyle === 'sat' ? 'plan' : 'sat';
   var btn = document.getElementById('style-btn');
-  if (_mapStyle === 'sat') {
-    btn.textContent = '🛰';
-    _map.setStyle({
-      version:8,
-      sources:{'sat':{type:'raster',tiles:['https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'],tileSize:256,maxzoom:20}},
-      layers:[{id:'sat',type:'raster',source:'sat'}]
-    });
-  } else {
-    btn.textContent = '🗺';
-    _map.setStyle({
-      version:8,
-      sources:{'osm':{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19}},
-      layers:[{id:'osm',type:'raster',source:'osm'}]
-    });
-  }
-  // Recharger les sources après changement de style
+  btn.textContent = _mapStyle === 'sat' ? '🛰' : '🗺';
+
+  var tileUrl = _mapStyle === 'sat'
+    ? 'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
+    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  var srcId = _mapStyle === 'sat' ? 'sat' : 'osm';
+
+  // Snapshot des données avant changement de style
+  var gpsData = {type:'FeatureCollection',features:_gpsFeature?[_gpsFeature]:[]};
+  var stickerSnapshot = _stickerData;
+
+  _map.setStyle({
+    version:8,
+    sources:{[srcId]:{type:'raster',tiles:[tileUrl],tileSize:256,maxzoom:20}},
+    layers:[{id:'bg',type:'raster',source:srcId}]
+  });
+
   _map.once('style.load', function(){
-    _map.addSource('gps-pos',{type:'geojson',data:{type:'FeatureCollection',features:_gpsFeature?[_gpsFeature]:[]}});
+    // GPS
+    _map.addSource('gps-pos',{type:'geojson',data:gpsData});
     _map.addLayer({id:'gps-halo',type:'circle',source:'gps-pos',paint:{'circle-radius':14,'circle-color':'rgba(79,195,247,0.25)','circle-stroke-width':0}});
     _map.addLayer({id:'gps-dot',type:'circle',source:'gps-pos',paint:{'circle-radius':8,'circle-color':'#4fc3f7','circle-stroke-width':3,'circle-stroke-color':'#fff'}});
-    _map.addSource('stickers',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+    // Stickers — réinjecter les données en mémoire directement, pas de refetch
+    _map.addSource('stickers',{type:'geojson',data:stickerSnapshot});
     _map.addLayer({id:'stickers-layer',type:'circle',source:'stickers',paint:{'circle-radius':10,'circle-color':'#2acc5a','circle-stroke-width':2,'circle-stroke-color':'#fff'}});
     _map.addLayer({id:'stickers-inactive',type:'circle',source:'stickers',filter:['==','active',false],paint:{'circle-radius':10,'circle-color':'#555','circle-stroke-width':2,'circle-stroke-color':'#888'}});
-    loadStickerMarkers();
+    // Remettre les click handlers
+    _map.on('click','stickers-layer',function(e){
+      var props = e.features[0].properties;
+      startAdjust(JSON.parse(props._raw));
+    });
+    _map.on('mouseenter','stickers-layer',function(){ _map.getCanvas().style.cursor='pointer'; });
+    _map.on('mouseleave','stickers-layer',function(){ _map.getCanvas().style.cursor=''; });
   });
 }
 
@@ -272,7 +283,9 @@ function loadStickerMarkers() {
       return {type:'Feature',geometry:{type:'Point',coordinates:[s.lng,s.lat]},
         properties:{active:s.active,_raw:JSON.stringify(s)}};
     });
-    _map.getSource('stickers').setData({type:'FeatureCollection',features:features});
+    var fc = {type:'FeatureCollection',features:features};
+    _stickerData = fc;
+    _map.getSource('stickers').setData(fc);
     if (features.length) {
       _map.flyTo({center:features[0].geometry.coordinates,zoom:15});
     }
