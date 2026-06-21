@@ -6,179 +6,329 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>KZTV · Sticker Drop</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;width:100%;background:#080412;font-family:system-ui,sans-serif;color:#f0eaf8;overflow:hidden;}
 
-#bg{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 60%,#1a0a3a 0%,#080412 70%);}
+/* Tabs */
+.tabs{display:flex;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08);}
+.tab{flex:1;padding:14px 0;text-align:center;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,234,248,.35);cursor:pointer;transition:color .2s;}
+.tab.active{color:#c94dff;border-bottom:2px solid #c94dff;}
 
-#app{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px;gap:32px;}
+/* Panels */
+.panel{display:none;flex-direction:column;align-items:center;height:calc(100% - 49px);overflow-y:auto;}
+.panel.active{display:flex;}
 
-h1{font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,234,248,.4);font-weight:500;}
+/* ── PANEL DROP ── */
+#panel-drop{justify-content:center;gap:28px;padding:24px;}
+h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,234,248,.35);font-weight:500;}
 
-/* Bouton principal */
 #drop-btn{
-  width:200px;height:200px;border-radius:50%;
+  width:190px;height:190px;border-radius:50%;
   background:linear-gradient(135deg,#7b2fff,#c94dff);
   border:none;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
   box-shadow:0 0 60px rgba(123,47,255,.5),0 0 120px rgba(123,47,255,.2);
-  transition:transform .15s ease, box-shadow .15s ease;
+  transition:transform .15s ease,box-shadow .15s ease;
   -webkit-user-select:none;user-select:none;
 }
-#drop-btn:active{transform:scale(.93);box-shadow:0 0 30px rgba(123,47,255,.4);}
-#drop-btn.loading{background:linear-gradient(135deg,#3a1a7a,#6a2aaa);cursor:default;}
+#drop-btn:active{transform:scale(.93);}
+#drop-btn.loading{background:linear-gradient(135deg,#3a1a7a,#6a2aaa);}
 #drop-btn.success{background:linear-gradient(135deg,#1a7a3a,#2acc5a);box-shadow:0 0 60px rgba(42,204,90,.5);}
-#drop-btn.error{background:linear-gradient(135deg,#7a1a1a,#cc2a2a);box-shadow:0 0 60px rgba(204,42,42,.5);}
+#drop-btn.error{background:linear-gradient(135deg,#7a1a1a,#cc2a2a);box-shadow:0 0 60px rgba(204,42,42,.4);}
 
-#btn-icon{font-size:48px;line-height:1;}
-#btn-label{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fff;opacity:.9;}
+#btn-icon{font-size:44px;line-height:1;}
+#btn-label{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fff;opacity:.9;}
 
-/* Status */
-#status{font-size:14px;color:rgba(240,234,248,.5);text-align:center;min-height:20px;transition:all .3s;}
+#status{font-size:13px;color:rgba(240,234,248,.45);text-align:center;min-height:18px;}
 #status.ok{color:#2acc5a;}
 #status.err{color:#cc4444;}
 
-/* Historique récent */
 #history{width:100%;max-width:320px;}
-#history h2{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:rgba(240,234,248,.3);margin-bottom:10px;}
-#history-list{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;}
-.h-item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;}
-.h-item .h-addr{font-size:12px;color:rgba(240,234,248,.7);flex:1;}
-.h-item .h-time{font-size:11px;color:rgba(240,234,248,.3);margin-left:8px;}
-.h-empty{font-size:12px;color:rgba(240,234,248,.25);text-align:center;padding:12px 0;}
+#history h2{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:rgba(240,234,248,.25);margin-bottom:8px;}
+#history-list{display:flex;flex-direction:column;gap:5px;max-height:140px;overflow-y:auto;}
+.h-item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+.h-item:active{background:rgba(255,255,255,.1);}
+.h-addr{font-size:12px;color:rgba(240,234,248,.65);flex:1;}
+.h-time{font-size:11px;color:rgba(240,234,248,.28);margin-left:8px;}
+.h-empty{font-size:12px;color:rgba(240,234,248,.22);text-align:center;padding:10px 0;}
+
+/* ── PANEL MAP ── */
+#panel-map{padding:0;position:relative;}
+#sticker-map{width:100%;height:100%;}
+
+/* Marker draggable central */
+#map-crosshair{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-100%);
+  font-size:32px;pointer-events:none;z-index:10;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.6));
+  display:none;
+}
+
+/* Barre d'action map */
+#map-bar{
+  position:absolute;bottom:0;left:0;right:0;z-index:10;
+  background:rgba(8,4,18,.85);backdrop-filter:blur(12px);
+  border-top:1px solid rgba(255,255,255,.1);
+  padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));
+  display:none;flex-direction:column;gap:10px;
+}
+#map-addr{font-size:13px;color:rgba(240,234,248,.6);text-align:center;}
+.map-btns{display:flex;gap:8px;}
+.map-btn{flex:1;padding:12px;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
+.map-btn.primary{background:linear-gradient(135deg,#7b2fff,#c94dff);color:#fff;}
+.map-btn.secondary{background:rgba(255,255,255,.08);color:rgba(240,234,248,.6);border:1px solid rgba(255,255,255,.1);}
 </style>
 </head>
 <body>
-<div id="bg"></div>
-<div id="app">
-  <h1>KZTV · Sticker Drop</h1>
 
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('drop')" id="tab-drop">📍 Poser</div>
+  <div class="tab" onclick="switchTab('map')" id="tab-map">🗺 Map</div>
+</div>
+
+<!-- Panel Drop -->
+<div class="panel active" id="panel-drop">
+  <h1>KZTV · Sticker Drop</h1>
   <button id="drop-btn" onclick="dropSticker()">
     <span id="btn-icon">📍</span>
     <span id="btn-label">Poser ici</span>
   </button>
-
   <div id="status"></div>
-
   <div id="history">
     <h2>Posés récemment</h2>
     <div id="history-list"><div class="h-empty">Aucun sticker posé</div></div>
   </div>
 </div>
 
+<!-- Panel Map -->
+<div class="panel" id="panel-map">
+  <div id="sticker-map"></div>
+  <div id="map-crosshair">📍</div>
+  <div id="map-bar">
+    <div id="map-addr">Déplacez la carte pour ajuster</div>
+    <div class="map-btns">
+      <button class="map-btn secondary" onclick="cancelAdjust()">Annuler</button>
+      <button class="map-btn primary" onclick="confirmAdjust()">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
 var SB = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
+
 var _busy = false;
 var _recent = [];
+var _map = null;
+var _adjustId = null;  // id du spot en cours d'ajustement
+var _adjustMode = false;
 
+// ── TABS ──
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.panel').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('panel-'+t).classList.add('active');
+  if (t === 'map') { setTimeout(initMap, 50); }
+}
+
+// ── MAP ──
+function initMap() {
+  if (_map) { _map.resize(); loadStickerMarkers(); return; }
+  _map = new maplibregl.Map({
+    container: 'sticker-map',
+    style: {
+      version:8,
+      sources:{'sat':{type:'raster',tiles:['https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'],tileSize:256,maxzoom:20}},
+      layers:[{id:'sat',type:'raster',source:'sat'}]
+    },
+    center:[2.3522,48.8566], zoom:13,
+    attributionControl:false
+  });
+  _map.addControl(new maplibregl.NavigationControl({showCompass:false}),'bottom-right');
+  _map.on('load', function(){
+    _map.addSource('stickers',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+    _map.addLayer({id:'stickers-layer',type:'circle',source:'stickers',
+      paint:{'circle-radius':10,'circle-color':'#2acc5a','circle-stroke-width':2,'circle-stroke-color':'#fff'}
+    });
+    _map.addLayer({id:'stickers-inactive',type:'circle',source:'stickers',
+      filter:['==','active',false],
+      paint:{'circle-radius':10,'circle-color':'#555','circle-stroke-width':2,'circle-stroke-color':'#888'}
+    });
+    // Click sur marker → ajuster
+    _map.on('click','stickers-layer',function(e){
+      var props = e.features[0].properties;
+      startAdjust(JSON.parse(props._raw));
+    });
+    _map.on('mouseenter','stickers-layer',function(){ _map.getCanvas().style.cursor='pointer'; });
+    _map.on('mouseleave','stickers-layer',function(){ _map.getCanvas().style.cursor=''; });
+    loadStickerMarkers();
+    // Centrer GPS
+    navigator.geolocation.getCurrentPosition(function(pos){
+      _map.flyTo({center:[pos.coords.longitude,pos.coords.latitude],zoom:15});
+    },function(){},{enableHighAccuracy:true});
+  });
+}
+
+function loadStickerMarkers() {
+  fetch(SB+'/rest/v1/spots?type=eq.sticker&select=*',
+    {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}})
+  .then(function(r){return r.json();})
+  .then(function(spots){
+    var features = spots.filter(function(s){return s.lat&&s.lng;}).map(function(s){
+      return {type:'Feature',geometry:{type:'Point',coordinates:[s.lng,s.lat]},
+        properties:{active:s.active,_raw:JSON.stringify(s)}};
+    });
+    _map.getSource('stickers').setData({type:'FeatureCollection',features:features});
+    if (features.length) {
+      _map.flyTo({center:features[0].geometry.coordinates,zoom:15});
+    }
+  }).catch(function(){});
+}
+
+// ── AJUSTEMENT POSITION ──
+function startAdjust(spot) {
+  _adjustId = spot.id;
+  _adjustMode = true;
+  // Centrer la map sur le spot
+  _map.flyTo({center:[spot.lng,spot.lat],zoom:17});
+  // Afficher crosshair et barre
+  document.getElementById('map-crosshair').style.display = 'block';
+  document.getElementById('map-bar').style.display = 'flex';
+  document.getElementById('map-addr').textContent = spot.label || 'Déplacez la carte pour ajuster';
+  // Écouter le mouvement de la map
+  _map.on('move', onMapMove);
+}
+
+function onMapMove() {
+  var c = _map.getCenter();
+  document.getElementById('map-addr').textContent = c.lat.toFixed(5) + ', ' + c.lng.toFixed(5);
+}
+
+async function confirmAdjust() {
+  var c = _map.getCenter();
+  var lat = c.lat, lng = c.lng;
+  // Géocodage inversé
+  var address = '';
+  try {
+    var r = await fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lng+'&format=json&accept-language=fr');
+    var geo = await r.json();
+    var a = geo.address||{};
+    address = [a.road, a.city||a.town||a.village||a.municipality].filter(Boolean).join(', ');
+  } catch(e){}
+
+  try {
+    await fetch(SB+'/rest/v1/spots?id=eq.'+_adjustId, {
+      method:'PATCH',
+      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({lat:lat,lng:lng,label:address||('Sticker '+new Date().toLocaleDateString('fr-FR'))})
+    });
+    if (navigator.vibrate) navigator.vibrate([50,30,100]);
+    document.getElementById('map-addr').textContent = '✅ Position mise à jour';
+    setTimeout(cancelAdjust, 1000);
+    loadStickerMarkers();
+  } catch(e) {
+    document.getElementById('map-addr').textContent = '❌ Erreur';
+  }
+}
+
+function cancelAdjust() {
+  _adjustMode = false;
+  _adjustId = null;
+  _map.off('move', onMapMove);
+  document.getElementById('map-crosshair').style.display = 'none';
+  document.getElementById('map-bar').style.display = 'none';
+}
+
+// ── DROP ──
 function setBtn(state, icon, label) {
   var btn = document.getElementById('drop-btn');
   btn.className = state;
   document.getElementById('btn-icon').textContent = icon;
   document.getElementById('btn-label').textContent = label;
 }
-
 function setStatus(msg, cls) {
   var el = document.getElementById('status');
   el.textContent = msg;
-  el.className = cls || '';
+  el.className = cls||'';
 }
 
 async function reverseGeocode(lat, lng) {
   try {
     var r = await fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lng+'&format=json&accept-language=fr');
     var d = await r.json();
-    var a = d.address || {};
-    var parts = [a.road, a.city || a.town || a.village || a.municipality].filter(Boolean);
-    return parts.join(', ') || d.display_name.split(',').slice(0,2).join(',').trim();
-  } catch(e) { return ''; }
+    var a = d.address||{};
+    return [a.road, a.city||a.town||a.village||a.municipality].filter(Boolean).join(', ') || '';
+  } catch(e){ return ''; }
 }
 
 async function dropSticker() {
   if (_busy) return;
   _busy = true;
-  setBtn('loading', '⏳', 'Localisation...');
+  setBtn('loading','⏳','Localisation...');
   setStatus('Récupération GPS...');
 
   if (!navigator.geolocation) {
-    setBtn('error', '❌', 'Erreur');
-    setStatus('Géolocalisation non disponible', 'err');
+    setBtn('error','❌','Erreur');
+    setStatus('Géolocalisation non disponible','err');
     _busy = false; return;
   }
 
   navigator.geolocation.getCurrentPosition(async function(pos) {
-    var lat = pos.coords.latitude;
-    var lng = pos.coords.longitude;
-
+    var lat = pos.coords.latitude, lng = pos.coords.longitude;
     setStatus('Géocodage...');
     var address = await reverseGeocode(lat, lng);
-
     setStatus('Enregistrement...');
     try {
       var r = await fetch(SB+'/rest/v1/spots', {
-        method: 'POST',
-        headers: {
-          'apikey': KEY,
-          'Authorization': 'Bearer '+KEY,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({
-          lat: lat,
-          lng: lng,
-          address: address,
-          label: address || ('Sticker ' + new Date().toLocaleDateString('fr-FR')),
-          type: 'sticker',
-          active: true,
-          scans_count: 0
-        })
+        method:'POST',
+        headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+        body:JSON.stringify({lat:lat,lng:lng,address:address,label:address||('Sticker '+new Date().toLocaleDateString('fr-FR')),type:'sticker',active:true,scans_count:0})
       });
-
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+      if (!r.ok) throw new Error('HTTP '+r.status);
       var data = await r.json();
-
-      // Vibration
-      if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
-
-      setBtn('success', '✅', 'Posé !');
-      setStatus(address || 'Sticker posé', 'ok');
-
-      // Ajouter à l'historique
-      _recent.unshift({ address: address || 'Position inconnue', time: new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) });
-      if (_recent.length > 5) _recent.pop();
+      if (navigator.vibrate) navigator.vibrate([50,30,100]);
+      setBtn('success','✅','Posé !');
+      setStatus(address||'Sticker posé','ok');
+      _recent.unshift({id:data[0]&&data[0].id,address:address||'Position inconnue',time:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})});
+      if (_recent.length>5) _recent.pop();
       renderHistory();
-
-      // Reset après 2.5s
-      setTimeout(function(){
-        setBtn('', '📍', 'Poser ici');
-        setStatus('');
-        _busy = false;
-      }, 2500);
-
+      // Recharger markers si map ouverte
+      if (_map) loadStickerMarkers();
+      setTimeout(function(){ setBtn('','📍','Poser ici'); setStatus(''); _busy=false; }, 2500);
     } catch(e) {
-      setBtn('error', '❌', 'Erreur');
-      setStatus('Impossible d\'enregistrer', 'err');
-      setTimeout(function(){ setBtn('', '📍', 'Poser ici'); setStatus(''); _busy = false; }, 2500);
+      setBtn('error','❌','Erreur');
+      setStatus('Impossible d\'enregistrer','err');
+      setTimeout(function(){ setBtn('','📍','Poser ici'); setStatus(''); _busy=false; }, 2500);
     }
-
-  }, function(err) {
-    setBtn('error', '❌', 'GPS refusé');
-    setStatus('Autorise la localisation', 'err');
-    setTimeout(function(){ setBtn('', '📍', 'Poser ici'); setStatus(''); _busy = false; }, 2500);
-  }, { enableHighAccuracy: true, timeout: 10000 });
+  }, function() {
+    setBtn('error','❌','GPS refusé');
+    setStatus('Autorise la localisation','err');
+    setTimeout(function(){ setBtn('','📍','Poser ici'); setStatus(''); _busy=false; }, 2500);
+  }, {enableHighAccuracy:true,timeout:10000});
 }
 
 function renderHistory() {
   var list = document.getElementById('history-list');
-  if (_recent.length === 0) {
-    list.innerHTML = '<div class="h-empty">Aucun sticker posé</div>';
-    return;
-  }
+  if (!_recent.length) { list.innerHTML='<div class="h-empty">Aucun sticker posé</div>'; return; }
   list.innerHTML = _recent.map(function(h){
-    return '<div class="h-item"><span class="h-addr">📍 '+h.address+'</span><span class="h-time">'+h.time+'</span></div>';
+    return '<div class="h-item" onclick="goToSticker(\''+h.id+'\')"><span class="h-addr">📍 '+h.address+'</span><span class="h-time">'+h.time+'</span></div>';
   }).join('');
+}
+
+function goToSticker(id) {
+  // Aller sur la map et ajuster ce sticker
+  switchTab('map');
+  setTimeout(function(){
+    fetch(SB+'/rest/v1/spots?id=eq.'+id+'&select=*',
+      {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}})
+    .then(function(r){return r.json();})
+    .then(function(d){ if(d[0]) startAdjust(d[0]); });
+  }, 300);
 }
 </script>
 </body>
