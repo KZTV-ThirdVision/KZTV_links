@@ -106,6 +106,23 @@ h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,23
 <!-- Panel Map -->
 <div class="panel" id="panel-map">
   <div id="sticker-map"></div>
+  <!-- Contrôles map -->
+  <div id="map-controls" style="position:absolute;top:14px;left:14px;z-index:10;display:flex;flex-direction:column;gap:8px;">
+    <!-- Toggle satellite/plan -->
+    <button id="style-btn" onclick="toggleMapStyle()" style="
+      width:40px;height:40px;border-radius:10px;border:none;
+      background:rgba(8,4,18,.85);backdrop-filter:blur(8px);
+      border:1px solid rgba(255,255,255,.15);
+      color:#f0eaf8;font-size:18px;cursor:pointer;
+    ">🛰</button>
+    <!-- Retour position -->
+    <button onclick="centerOnMe()" style="
+      width:40px;height:40px;border-radius:10px;border:none;
+      background:rgba(8,4,18,.85);backdrop-filter:blur(8px);
+      border:1px solid rgba(255,255,255,.15);
+      color:#4fc3f7;font-size:18px;cursor:pointer;
+    ">◎</button>
+  </div>
   <!-- Bouton + pour ajouter un sticker depuis la map -->
   <button id="add-btn" onclick="addFromMap()" style="
     position:absolute;top:14px;right:14px;z-index:10;
@@ -175,12 +192,75 @@ function initMap() {
     });
     _map.on('mouseenter','stickers-layer',function(){ _map.getCanvas().style.cursor='pointer'; });
     _map.on('mouseleave','stickers-layer',function(){ _map.getCanvas().style.cursor=''; });
+    // Source position GPS
+    _map.addSource('gps-pos',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+    _map.addLayer({id:'gps-halo',type:'circle',source:'gps-pos',
+      paint:{'circle-radius':14,'circle-color':'rgba(79,195,247,0.25)','circle-stroke-width':0}
+    });
+    _map.addLayer({id:'gps-dot',type:'circle',source:'gps-pos',
+      paint:{'circle-radius':8,'circle-color':'#4fc3f7','circle-stroke-width':3,'circle-stroke-color':'#fff'}
+    });
     loadStickerMarkers();
-    // Centrer GPS
-    navigator.geolocation.getCurrentPosition(function(pos){
-      _map.flyTo({center:[pos.coords.longitude,pos.coords.latitude],zoom:15});
-    },function(){},{enableHighAccuracy:true});
+    startGPSTracking();
   });
+}
+
+var _mapStyle = 'sat';
+function toggleMapStyle() {
+  _mapStyle = _mapStyle === 'sat' ? 'plan' : 'sat';
+  var btn = document.getElementById('style-btn');
+  if (_mapStyle === 'sat') {
+    btn.textContent = '🛰';
+    _map.setStyle({
+      version:8,
+      sources:{'sat':{type:'raster',tiles:['https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'],tileSize:256,maxzoom:20}},
+      layers:[{id:'sat',type:'raster',source:'sat'}]
+    });
+  } else {
+    btn.textContent = '🗺';
+    _map.setStyle({
+      version:8,
+      sources:{'osm':{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19}},
+      layers:[{id:'osm',type:'raster',source:'osm'}]
+    });
+  }
+  // Recharger les sources après changement de style
+  _map.once('style.load', function(){
+    _map.addSource('gps-pos',{type:'geojson',data:{type:'FeatureCollection',features:_gpsFeature?[_gpsFeature]:[]}});
+    _map.addLayer({id:'gps-halo',type:'circle',source:'gps-pos',paint:{'circle-radius':14,'circle-color':'rgba(79,195,247,0.25)','circle-stroke-width':0}});
+    _map.addLayer({id:'gps-dot',type:'circle',source:'gps-pos',paint:{'circle-radius':8,'circle-color':'#4fc3f7','circle-stroke-width':3,'circle-stroke-color':'#fff'}});
+    _map.addSource('stickers',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+    _map.addLayer({id:'stickers-layer',type:'circle',source:'stickers',paint:{'circle-radius':10,'circle-color':'#2acc5a','circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+    _map.addLayer({id:'stickers-inactive',type:'circle',source:'stickers',filter:['==','active',false],paint:{'circle-radius':10,'circle-color':'#555','circle-stroke-width':2,'circle-stroke-color':'#888'}});
+    loadStickerMarkers();
+  });
+}
+
+var _gpsFeature = null;
+var _gpsWatchId = null;
+function startGPSTracking() {
+  if (!navigator.geolocation) return;
+  _gpsWatchId = navigator.geolocation.watchPosition(function(pos){
+    var lng = pos.coords.longitude, lat = pos.coords.latitude;
+    _gpsFeature = {type:'Feature',geometry:{type:'Point',coordinates:[lng,lat]},properties:{}};
+    if (_map.getSource('gps-pos')) {
+      _map.getSource('gps-pos').setData({type:'FeatureCollection',features:[_gpsFeature]});
+    }
+  },function(){},{enableHighAccuracy:true,maximumAge:5000});
+  // Centrer au démarrage
+  navigator.geolocation.getCurrentPosition(function(pos){
+    _map.flyTo({center:[pos.coords.longitude,pos.coords.latitude],zoom:15});
+  },function(){},{enableHighAccuracy:true,timeout:8000});
+}
+
+function centerOnMe() {
+  if (_gpsFeature) {
+    _map.flyTo({center:_gpsFeature.geometry.coordinates,zoom:17});
+  } else {
+    navigator.geolocation.getCurrentPosition(function(pos){
+      _map.flyTo({center:[pos.coords.longitude,pos.coords.latitude],zoom:17});
+    });
+  }
 }
 
 function loadStickerMarkers() {
