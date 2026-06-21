@@ -125,11 +125,11 @@ h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,23
   </div>
   <!-- Bouton + pour ajouter un sticker depuis la map -->
   <button id="add-btn" onclick="addFromMap()" style="
-    position:absolute;top:14px;right:14px;z-index:10;
-    width:48px;height:48px;border-radius:50%;border:none;
+    position:absolute;bottom:calc(24px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:10;
+    width:56px;height:56px;border-radius:50%;border:none;
     background:linear-gradient(135deg,#7b2fff,#c94dff);
-    color:#fff;font-size:26px;cursor:pointer;
-    box-shadow:0 4px 16px rgba(123,47,255,.5);
+    color:#fff;font-size:28px;cursor:pointer;
+    box-shadow:0 4px 20px rgba(123,47,255,.6);
     display:flex;align-items:center;justify-content:center;
   ">＋</button>
   <!-- Croix permanente -->
@@ -329,15 +329,39 @@ async function confirmAdjust() {
   }
 }
 
-function addFromMap() {
-  // Poser le crosshair exactement là où la map est déjà centrée, sans bouger
-  _adjustId = null;
-  _adjustMode = true;
-  document.getElementById('map-crosshair').style.display = 'block';
-  document.getElementById('map-bar').style.display = 'flex';
-  document.getElementById('map-addr').textContent = 'Déplacez la carte pour placer le sticker';
-  document.getElementById('add-btn').style.display = 'none';
-  _map.on('move', onMapMove);
+async function addFromMap() {
+  var c = _map.getCenter();
+  var lat = c.lat, lng = c.lng;
+  // Feedback visuel immédiat
+  var btn = document.getElementById('add-btn');
+  btn.style.background = 'linear-gradient(135deg,#1a7a3a,#2acc5a)';
+  btn.textContent = '✓';
+  // Géocodage + save en arrière-plan
+  var address = '';
+  try {
+    var r = await fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lng+'&format=json&accept-language=fr');
+    var geo = await r.json();
+    var a = geo.address||{};
+    address = [a.road, a.city||a.town||a.village||a.municipality].filter(Boolean).join(', ');
+  } catch(e){}
+  try {
+    var res = await fetch(SB+'/rest/v1/spots', {
+      method:'POST',
+      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+      body:JSON.stringify({lat:lat,lng:lng,address:address,label:address||('Sticker '+new Date().toLocaleDateString('fr-FR')),type:'sticker',active:true,scans_count:0})
+    });
+    if (!res.ok) throw new Error();
+    if (navigator.vibrate) navigator.vibrate([50,30,100]);
+    loadStickerMarkers();
+  } catch(e) {
+    btn.style.background = 'linear-gradient(135deg,#7a1a1a,#cc2a2a)';
+    btn.textContent = '✕';
+  }
+  // Reset bouton après 1.2s
+  setTimeout(function(){
+    btn.style.background = 'linear-gradient(135deg,#7b2fff,#c94dff)';
+    btn.textContent = '＋';
+  }, 1200);
 }
 
 function cancelAdjust() {
