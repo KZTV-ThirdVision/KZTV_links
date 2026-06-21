@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>KZTV · Sticker Drop</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;width:100%;background:#080412;font-family:system-ui,sans-serif;color:#f0eaf8;overflow:hidden;}
+
+#bg{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 60%,#1a0a3a 0%,#080412 70%);}
+
+#app{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px;gap:32px;}
+
+h1{font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,234,248,.4);font-weight:500;}
+
+/* Bouton principal */
+#drop-btn{
+  width:200px;height:200px;border-radius:50%;
+  background:linear-gradient(135deg,#7b2fff,#c94dff);
+  border:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  box-shadow:0 0 60px rgba(123,47,255,.5),0 0 120px rgba(123,47,255,.2);
+  transition:transform .15s ease, box-shadow .15s ease;
+  -webkit-user-select:none;user-select:none;
+}
+#drop-btn:active{transform:scale(.93);box-shadow:0 0 30px rgba(123,47,255,.4);}
+#drop-btn.loading{background:linear-gradient(135deg,#3a1a7a,#6a2aaa);cursor:default;}
+#drop-btn.success{background:linear-gradient(135deg,#1a7a3a,#2acc5a);box-shadow:0 0 60px rgba(42,204,90,.5);}
+#drop-btn.error{background:linear-gradient(135deg,#7a1a1a,#cc2a2a);box-shadow:0 0 60px rgba(204,42,42,.5);}
+
+#btn-icon{font-size:48px;line-height:1;}
+#btn-label{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fff;opacity:.9;}
+
+/* Status */
+#status{font-size:14px;color:rgba(240,234,248,.5);text-align:center;min-height:20px;transition:all .3s;}
+#status.ok{color:#2acc5a;}
+#status.err{color:#cc4444;}
+
+/* Historique récent */
+#history{width:100%;max-width:320px;}
+#history h2{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:rgba(240,234,248,.3);margin-bottom:10px;}
+#history-list{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;}
+.h-item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;}
+.h-item .h-addr{font-size:12px;color:rgba(240,234,248,.7);flex:1;}
+.h-item .h-time{font-size:11px;color:rgba(240,234,248,.3);margin-left:8px;}
+.h-empty{font-size:12px;color:rgba(240,234,248,.25);text-align:center;padding:12px 0;}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="app">
+  <h1>KZTV · Sticker Drop</h1>
+
+  <button id="drop-btn" onclick="dropSticker()">
+    <span id="btn-icon">📍</span>
+    <span id="btn-label">Poser ici</span>
+  </button>
+
+  <div id="status"></div>
+
+  <div id="history">
+    <h2>Posés récemment</h2>
+    <div id="history-list"><div class="h-empty">Aucun sticker posé</div></div>
+  </div>
+</div>
+
+<script>
+var SB = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
+var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
+var _busy = false;
+var _recent = [];
+
+function setBtn(state, icon, label) {
+  var btn = document.getElementById('drop-btn');
+  btn.className = state;
+  document.getElementById('btn-icon').textContent = icon;
+  document.getElementById('btn-label').textContent = label;
+}
+
+function setStatus(msg, cls) {
+  var el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = cls || '';
+}
+
+async function reverseGeocode(lat, lng) {
+  try {
+    var r = await fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lng+'&format=json&accept-language=fr');
+    var d = await r.json();
+    var a = d.address || {};
+    var parts = [a.road, a.city || a.town || a.village || a.municipality].filter(Boolean);
+    return parts.join(', ') || d.display_name.split(',').slice(0,2).join(',').trim();
+  } catch(e) { return ''; }
+}
+
+async function dropSticker() {
+  if (_busy) return;
+  _busy = true;
+  setBtn('loading', '⏳', 'Localisation...');
+  setStatus('Récupération GPS...');
+
+  if (!navigator.geolocation) {
+    setBtn('error', '❌', 'Erreur');
+    setStatus('Géolocalisation non disponible', 'err');
+    _busy = false; return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async function(pos) {
+    var lat = pos.coords.latitude;
+    var lng = pos.coords.longitude;
+
+    setStatus('Géocodage...');
+    var address = await reverseGeocode(lat, lng);
+
+    setStatus('Enregistrement...');
+    try {
+      var r = await fetch(SB+'/rest/v1/spots', {
+        method: 'POST',
+        headers: {
+          'apikey': KEY,
+          'Authorization': 'Bearer '+KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          lat: lat,
+          lng: lng,
+          address: address,
+          label: address || ('Sticker ' + new Date().toLocaleDateString('fr-FR')),
+          type: 'sticker',
+          active: true,
+          scans_count: 0
+        })
+      });
+
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var data = await r.json();
+
+      // Vibration
+      if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
+
+      setBtn('success', '✅', 'Posé !');
+      setStatus(address || 'Sticker posé', 'ok');
+
+      // Ajouter à l'historique
+      _recent.unshift({ address: address || 'Position inconnue', time: new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) });
+      if (_recent.length > 5) _recent.pop();
+      renderHistory();
+
+      // Reset après 2.5s
+      setTimeout(function(){
+        setBtn('', '📍', 'Poser ici');
+        setStatus('');
+        _busy = false;
+      }, 2500);
+
+    } catch(e) {
+      setBtn('error', '❌', 'Erreur');
+      setStatus('Impossible d\'enregistrer', 'err');
+      setTimeout(function(){ setBtn('', '📍', 'Poser ici'); setStatus(''); _busy = false; }, 2500);
+    }
+
+  }, function(err) {
+    setBtn('error', '❌', 'GPS refusé');
+    setStatus('Autorise la localisation', 'err');
+    setTimeout(function(){ setBtn('', '📍', 'Poser ici'); setStatus(''); _busy = false; }, 2500);
+  }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+function renderHistory() {
+  var list = document.getElementById('history-list');
+  if (_recent.length === 0) {
+    list.innerHTML = '<div class="h-empty">Aucun sticker posé</div>';
+    return;
+  }
+  list.innerHTML = _recent.map(function(h){
+    return '<div class="h-item"><span class="h-addr">📍 '+h.address+'</span><span class="h-time">'+h.time+'</span></div>';
+  }).join('');
+}
+</script>
+</body>
+</html>
