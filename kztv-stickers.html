@@ -205,7 +205,7 @@ async function loadConfig() {
   applyConfig(_bgLoaded);
 }
 
-function applyConfig() {
+function applyConfig(bgAlreadyLoaded) {
   var c = _cfg || {};
   // Fond
   var _bg = c.bg_photo_url || c.bg_photo || 'pp.jpg'; document.getElementById('bg-img').style.backgroundImage = "url('"+ _bg +"')";
