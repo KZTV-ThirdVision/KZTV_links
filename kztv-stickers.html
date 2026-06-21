@@ -159,7 +159,7 @@ async function loadConfig() {
 function applyConfig() {
   var c = _cfg || {};
   // Fond
-  if (c.bg_photo) document.getElementById('bg-img').style.backgroundImage = "url('"+c.bg_photo+"')";
+  var _bg = c.bg_photo_url || c.bg_photo || 'pp.jpg'; document.getElementById('bg-img').style.backgroundImage = "url('"+ _bg +"')";
   // Titre
   if (c.title) document.getElementById('main-title').textContent = c.title;
   // Sous-titre
