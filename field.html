@@ -1021,6 +1021,14 @@ html,body{height:100%;background:#080412;font-family:'Inter',sans-serif;color:#f
     </div>
   </div>
   <div id="kztv-map" style="position:absolute;top:52px;left:0;right:0;bottom:0;"></div>
+  <!-- Compteur -->
+  <div id="map-counter" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:10;
+    background:rgba(8,4,18,.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);
+    border-radius:20px;padding:6px 14px;display:flex;gap:12px;align-items:center;pointer-events:none;">
+    <span style="font-size:12px;font-weight:700;color:#7b2fff;">⬤ <span id="counter-qr">0</span> QR</span>
+    <span style="width:1px;height:14px;background:rgba(255,255,255,.15);"></span>
+    <span style="font-size:12px;font-weight:700;color:#2acc5a;">⬤ <span id="counter-stickers">0</span> stickers</span>
+  </div>
 </div>
 
 <div class="panel" id="p-config">
@@ -1990,6 +1998,14 @@ function loadMapSpots() {
       }
     });
     _mainMap.getSource('spots').setData({type:'FeatureCollection',features:features});
+    // Compteur
+    var allSpots = spots || [];
+    var nQR = allSpots.filter(function(s){return (s.type||'qr')==='qr' && s.active;}).length;
+    var nSt = allSpots.filter(function(s){return s.type==='sticker' && s.active;}).length;
+    var cqr = document.getElementById('counter-qr');
+    var cst = document.getElementById('counter-stickers');
+    if (cqr) cqr.textContent = nQR;
+    if (cst) cst.textContent = nSt;
     if (bounds && features.length > 1) {
       _mainMap.fitBounds(bounds, {padding:60, maxZoom:16});
     } else if (features.length === 1) {
