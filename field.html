@@ -1571,7 +1571,7 @@ function copyUrl(){navigator.clipboard.writeText(genUrl).then(()=>notif('Copié 
 async function loadSpots(){
   var l=document.getElementById('spots-list');l.innerHTML='<div class="empty">Chargement...</div>';
   try{
-    var r=await fetch(SB+'/rest/v1/spots?select=*&order=created_at.desc',{headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
+    var r=await fetch(SB+'/rest/v1/spots?select=*&type=eq.qr&order=created_at.desc',{headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
     var d=await r.json();
     if(!d.length){l.innerHTML='<div class="empty">Aucun spot</div>';return;}
     l.innerHTML='';
