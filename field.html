@@ -2000,18 +2000,43 @@ function loadMapSpots() {
 
 function showSpotPopup(s) {
   _mapSpot = s;
-  document.getElementById('sp-popup-name').textContent = s.label || 'Spot';
-  document.getElementById('sp-popup-addr').textContent = s.address || (s.lat ? s.lat.toFixed(5)+', '+s.lng.toFixed(5) : 'Sans position');
-  document.getElementById('sp-popup-scans').textContent = s.scans_count || 0;
-  document.getElementById('sp-popup-track').textContent = s.track_title || '—';
-  document.getElementById('sp-popup-url').textContent = s.real_url || '';
-  document.getElementById('spot-popup-overlay').style.display = 'block';
-  document.getElementById('spot-popup').style.display = 'block';
+  var date = s.created_at ? new Date(s.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  document.getElementById('sheet-name').textContent = s.label || 'Spot';
+  document.getElementById('sheet-addr').textContent = s.address || (s.lat ? s.lat.toFixed(5)+', '+s.lng.toFixed(5) : 'Sans position');
+  document.getElementById('sheet-date').textContent = date;
+  document.getElementById('sheet-scans').textContent = s.scans_count || 0;
+  document.getElementById('sheet-url').textContent = s.real_url || '—';
+  var btn = document.getElementById('sheet-toggle-btn');
+  btn.textContent = s.active ? '🔴 Désactiver' : '🟢 Activer';
+  btn.style.background = s.active ? 'rgba(255,60,60,.12)' : 'rgba(42,204,90,.12)';
+  btn.style.color = s.active ? '#ff6b6b' : '#2acc5a';
+  btn.style.border = s.active ? '1px solid rgba(255,60,60,.2)' : '1px solid rgba(42,204,90,.2)';
+  document.getElementById('map-sheet-overlay').style.display = 'block';
+  document.getElementById('map-sheet').classList.add('open');
 }
 
-function closeSpotPopup() {
-  document.getElementById('spot-popup-overlay').style.display = 'none';
-  document.getElementById('spot-popup').style.display = 'none';
+function closeMapSheet() {
+  document.getElementById('map-sheet').classList.remove('open');
+  document.getElementById('map-sheet-overlay').style.display = 'none';
+}
+
+function closeSpotPopup() { closeMapSheet(); }
+
+async function toggleSpotActiveFromSheet() {
+  if (!_mapSpot) return;
+  var newActive = !_mapSpot.active;
+  await fetch(SB+'/rest/v1/spots?id=eq.'+_mapSpot.id, {
+    method:'PATCH',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({active:newActive})
+  });
+  _mapSpot.active = newActive;
+  var btn = document.getElementById('sheet-toggle-btn');
+  btn.textContent = newActive ? '🔴 Désactiver' : '🟢 Activer';
+  btn.style.background = newActive ? 'rgba(255,60,60,.12)' : 'rgba(42,204,90,.12)';
+  btn.style.color = newActive ? '#ff6b6b' : '#2acc5a';
+  btn.style.border = newActive ? '1px solid rgba(255,60,60,.2)' : '1px solid rgba(42,204,90,.2)';
+  loadMapSpots();
 }
 
 function editUseGPS() {
@@ -2260,6 +2285,41 @@ var _pgLoaded = false;
 
 </script>
 
+<!-- BOTTOM SHEET MAP POPUP -->
+<style>
+#map-sheet-overlay{position:fixed;inset:0;z-index:200;display:none;}
+#map-sheet{
+  position:fixed;bottom:0;left:0;right:0;z-index:201;
+  background:#13091f;border-radius:20px 20px 0 0;
+  border-top:1px solid rgba(255,255,255,.12);
+  padding:0 0 calc(20px + env(safe-area-inset-bottom,0px));
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);
+}
+#map-sheet.open{transform:translateY(0);}
+.sheet-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto 16px;}
+.sheet-name{font-size:16px;font-weight:700;color:#f0eaf8;padding:0 16px 4px;}
+.sheet-row{display:flex;align-items:center;gap:8px;padding:6px 16px;font-size:13px;color:rgba(240,234,248,.55);}
+.sheet-row span{color:rgba(240,234,248,.85);}
+.sheet-divider{height:1px;background:rgba(255,255,255,.07);margin:10px 0;}
+.sheet-btns{display:flex;gap:8px;padding:12px 16px 0;}
+.sheet-btn{flex:1;padding:12px;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
+.sheet-btn.primary{background:linear-gradient(135deg,#7b2fff,#c94dff);color:#fff;}
+</style>
+
+<div id="map-sheet-overlay" onclick="closeMapSheet()"></div>
+<div id="map-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-name" id="sheet-name">—</div>
+  <div class="sheet-row">📍 <span id="sheet-addr">—</span></div>
+  <div class="sheet-row">📅 <span id="sheet-date">—</span></div>
+  <div class="sheet-row">👁 <span id="sheet-scans">—</span> scans</div>
+  <div class="sheet-row">🔗 <span id="sheet-url" style="word-break:break-all;font-size:11px;opacity:.6;">—</span></div>
+  <div class="sheet-divider"></div>
+  <div class="sheet-btns">
+    <button class="sheet-btn primary" onclick="closeMapSheet();showTab('spots');loadSpots();">✏️ Modifier</button>
+    <button class="sheet-btn" onclick="toggleSpotActiveFromSheet();" id="sheet-toggle-btn">—</button>
+  </div>
+</div>
 
 </body>
 </html><!-- MINIMAP MODAL -->
