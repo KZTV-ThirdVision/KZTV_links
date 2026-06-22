@@ -2032,6 +2032,17 @@ function closeMapSheet() {
 
 function closeSpotPopup() { closeMapSheet(); }
 
+async function deleteSpotFromSheet() {
+  if (!_mapSpot) return;
+  if (!confirm('Supprimer ce spot ?')) return;
+  await fetch(SB+'/rest/v1/spots?id=eq.'+_mapSpot.id, {
+    method:'DELETE',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}
+  });
+  closeMapSheet();
+  loadMapSpots();
+}
+
 async function toggleSpotActiveFromSheet() {
   if (!_mapSpot) return;
   var newActive = !_mapSpot.active;
@@ -2331,6 +2342,7 @@ var _pgLoaded = false;
   <div class="sheet-btns">
     <button class="sheet-btn primary" onclick="closeMapSheet();showTab('spots');loadSpots();">✏️ Modifier</button>
     <button class="sheet-btn" onclick="toggleSpotActiveFromSheet();" id="sheet-toggle-btn">—</button>
+    <button class="sheet-btn" onclick="deleteSpotFromSheet();" style="background:rgba(255,40,40,.12);color:#ff5555;border:1px solid rgba(255,40,40,.2);">🗑</button>
   </div>
 </div>
 
