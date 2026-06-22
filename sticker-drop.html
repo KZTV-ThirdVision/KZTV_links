@@ -12,12 +12,12 @@
 html,body{height:100%;width:100%;background:#080412;font-family:system-ui,sans-serif;color:#f0eaf8;overflow:hidden;}
 
 /* Tabs */
-.tabs{display:flex;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08);padding-top:env(safe-area-inset-top,0px);}
+.tabs{display:flex;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08);padding-top:env(safe-area-inset-top,0px);flex-shrink:0;}
 .tab{flex:1;padding:14px 0;text-align:center;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,234,248,.35);cursor:pointer;transition:color .2s;}
 .tab.active{color:#c94dff;border-bottom:2px solid #c94dff;}
 
 /* Panels */
-.panel{display:none;flex-direction:column;align-items:center;height:calc(100% - 49px);overflow-y:auto;}
+.panel{display:none;flex-direction:column;align-items:center;height:calc(100% - 49px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow-y:auto;}
 .panel.active{display:flex;}
 
 /* ── PANEL DROP ── */
