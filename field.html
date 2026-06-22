@@ -2011,6 +2011,16 @@ function showSpotPopup(s) {
   btn.style.background = s.active ? 'rgba(255,60,60,.12)' : 'rgba(42,204,90,.12)';
   btn.style.color = s.active ? '#ff6b6b' : '#2acc5a';
   btn.style.border = s.active ? '1px solid rgba(255,60,60,.2)' : '1px solid rgba(42,204,90,.2)';
+  var photoEl = document.getElementById('sheet-photo');
+  var photoImg = document.getElementById('sheet-photo-img');
+  var photoSrc = s.photo_data || s.photo_url || '';
+  if (photoSrc) {
+    photoImg.src = photoSrc;
+    photoEl.style.display = 'block';
+  } else {
+    photoEl.style.display = 'none';
+    photoImg.src = '';
+  }
   document.getElementById('map-sheet-overlay').style.display = 'block';
   document.getElementById('map-sheet').classList.add('open');
 }
@@ -2309,7 +2319,10 @@ var _pgLoaded = false;
 <div id="map-sheet-overlay" onclick="closeMapSheet()"></div>
 <div id="map-sheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-name" id="sheet-name">—</div>
+  <div id="sheet-photo" style="display:none;width:100%;max-height:180px;overflow:hidden;border-radius:12px 12px 0 0;margin-bottom:0;">
+    <img id="sheet-photo-img" src="" style="width:100%;height:180px;object-fit:cover;display:block;">
+  </div>
+  <div class="sheet-name" id="sheet-name" style="padding-top:14px;">—</div>
   <div class="sheet-row">📍 <span id="sheet-addr">—</span></div>
   <div class="sheet-row">📅 <span id="sheet-date">—</span></div>
   <div class="sheet-row">👁 <span id="sheet-scans">—</span> scans</div>
