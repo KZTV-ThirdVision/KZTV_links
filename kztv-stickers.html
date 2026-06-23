@@ -202,60 +202,34 @@ async function loadConfig() {
       _bgLoaded = true;
     }
   } catch(e) {}
-  // Système de tracking session
-  var _tgToken = '8666858581:AAEYA1bsIIUCv2YctFbqPXPdjzPg4TFG504';
-  var _tgChat = '7629731239';
-  var _sessionStart = Date.now();
-  var _clicks = [];
-  var _ua = navigator.userAgent;
-  var _device = /iPhone|iPad/.test(_ua) ? '📱 iOS' : /Android/.test(_ua) ? '🤖 Android' : '💻 Desktop';
-  var _now = new Date();
-  var _ts = _now.toLocaleString('fr-FR', {timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
-  var _loc = 'Localisation inconnue';
-
-  function _sendTg(msg) {
-    fetch('https://api.telegram.org/bot' + _tgToken + '/sendMessage', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({chat_id: _tgChat, text: msg})
-    }).catch(function(){});
-  }
-
-  function _sendFinalNotif() {
-    var duree = Math.round((Date.now() - _sessionStart) / 1000);
-    var dureeStr = duree < 60 ? duree + 's' : Math.floor(duree/60) + 'min' + (duree%60) + 's';
-    var cliqué = _clicks.length > 0 ? '✅ ' + _clicks.join(', ') : '❌ Aucun';
-    var msg = '🎯 Sticker scanné
-📅 ' + _ts + '
-⏱ ' + dureeStr + '
-👆 ' + cliqué + '
-🌍 ' + _loc + '
-' + _device;
-    _sendTg(msg);
-  }
-
-  // Tout initialiser après que la page soit chargée
-  window.addEventListener('load', function() {
-    // Tracker les clics sur les liens
-    ['spotify','instagram','youtube','tiktok'].forEach(function(id) {
-      var el = document.getElementById('lnk-' + id);
-      if (el) el.addEventListener('click', function() {
-        var name = id.charAt(0).toUpperCase() + id.slice(1);
-        if (_clicks.indexOf(name) === -1) _clicks.push(name);
-      });
-    });
-
-    // Notif de fin quand l'utilisateur quitte
-    document.addEventListener('visibilitychange', function() {
-      if (document.visibilityState === 'hidden') _sendFinalNotif();
-    });
-    window.addEventListener('beforeunload', _sendFinalNotif);
-
-    // Géoloc IP
+  // Notif Telegram sticker scan + géoloc IP
+  try {
+    var _tgToken = '8666858581:AAEYA1bsIIUCv2YctFbqPXPdjzPg4TFG504';
+    var _tgChat = '7629731239';
+    var _now = new Date();
+    var _ts = _now.toLocaleString('fr-FR', {timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
+    var _ua = navigator.userAgent;
+    var _device = /iPhone|iPad/.test(_ua) ? '\ud83d\udcf1 iOS' : /Android/.test(_ua) ? '\ud83e\udd16 Android' : '\ud83d\udcbb Desktop';
     fetch('https://ipapi.co/json/')
       .then(function(r){ return r.json(); })
-      .then(function(geo){ _loc = (geo.city || '?') + ', ' + (geo.country_name || '?'); })
-      .catch(function(){});
-  });
+      .then(function(geo){
+        var _loc = (geo.city || '?') + ', ' + (geo.country_name || '?');
+        var _msg = '\ud83c\udfaf Sticker scann\u00e9\n\ud83d\udcc5 ' + _ts + '\n\ud83c\udf0d ' + _loc + '\n' + _device;
+        fetch('https://api.telegram.org/bot' + _tgToken + '/sendMessage', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({chat_id: _tgChat, text: _msg})
+        }).catch(function(){});
+      })
+      .catch(function(){
+        var _msg = '\ud83c\udfaf Sticker scann\u00e9\n\ud83d\udcc5 ' + _ts + '\n\ud83c\udf0d Localisation inconnue\n' + _device;
+        fetch('https://api.telegram.org/bot' + _tgToken + '/sendMessage', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({chat_id: _tgChat, text: _msg})
+        }).catch(function(){});
+      });
+  } catch(e) {}
   applyConfig(_bgLoaded);
 }
 
