@@ -233,6 +233,33 @@ async function loadConfig() {
   applyConfig(_bgLoaded);
 }
 
+var _sessionStart = Date.now();
+var _clicks = [];
+var _locS = 'Localisation inconnue';
+var _finalSent = false;
+function _sendFinal() {
+  if (_finalSent) return; _finalSent = true;
+  var d = Math.round((Date.now()-_sessionStart)/1000);
+  var ds = d<60 ? d+'s' : Math.floor(d/60)+'min'+(d%60)+'s';
+  var ts = new Date().toLocaleString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
+  var ua = navigator.userAgent;
+  var dev = /iPhone|iPad/.test(ua) ? '📱 iOS' : /Android/.test(ua) ? '🤖 Android' : '💻 Desktop';
+  var cl = _clicks.length > 0 ? '✅ '+_clicks.join(', ') : '❌ Aucun';
+  var msg = '🎯 Session terminée\
+📅 '+ts+'\
+⏱ '+ds+'\
+🖱 '+cl+'\
+🌍 '+_locS+'\
+'+dev;
+  fetch('https://api.telegram.org/bot8666858581:AAEYA1bsIIUCv2YctFbqPXPdjzPg4TFG504/sendMessage',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({chat_id:'7629731239',text:msg})
+  }).catch(function(){});
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden') _sendFinal();
+});
+
 function applyConfig(bgAlreadyLoaded) {
   var c = _cfg || {};
   // Fond
@@ -256,6 +283,16 @@ function applyConfig(bgAlreadyLoaded) {
   setLink('lnk-instagram', lnks.instagram);
   setLink('lnk-youtube', lnks.youtube);
   setLink('lnk-tiktok', lnks.tiktok);
+  ['spotify','instagram','youtube','tiktok'].forEach(function(id){
+    var el=document.getElementById('lnk-'+id);
+    if(el) el.addEventListener('click',function(){
+      var n=id.charAt(0).toUpperCase()+id.slice(1);
+      if(_clicks.indexOf(n)===-1) _clicks.push(n);
+    });
+  });
+  fetch('https://ipapi.co/json/').then(function(r){return r.json();}).then(function(g){
+    _locS=(g.city||'?')+', '+(g.country_name||'?');
+  }).catch(function(){});
   // Vidéo : préparer mais pas lancer encore
   if (c.yt_id) {
     _ytVideoId = c.yt_id;
