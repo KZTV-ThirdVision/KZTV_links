@@ -107,10 +107,10 @@ h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,23
 <div class="panel" id="panel-map">
   <div id="sticker-map"></div>
   <!-- Compteur stickers en haut au centre -->
-  <div id="sd-counter" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:10;
-    background:rgba(8,4,18,.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);
-    border-radius:20px;padding:6px 14px;pointer-events:none;white-space:nowrap;">
-    <span style="font-size:12px;font-weight:700;color:#2acc5a;">⬤ <span id="sd-counter-val">0</span> stickers actifs</span>
+  <div id="sd-counter" onclick="openZonesSheet()" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:10;
+    background:rgba(8,4,18,.85);backdrop-filter:blur(8px);border:1px solid rgba(42,204,90,.3);
+    border-radius:20px;padding:6px 14px;white-space:nowrap;cursor:pointer;">
+    <span style="font-size:12px;font-weight:700;color:#2acc5a;">⬤ <span id="sd-counter-val">0</span> stickers actifs ›</span>
   </div>
   <!-- Contrôles map -->
   <div id="map-controls" style="position:absolute;top:14px;left:14px;z-index:10;display:flex;flex-direction:column;gap:8px;">
@@ -156,6 +156,7 @@ h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,23
     <div id="map-addr">Déplacez la carte pour ajuster</div>
     <div class="map-btns">
       <button class="map-btn" onclick="deleteAdjustSpot()" id="map-delete-btn" style="display:none;background:rgba(255,40,40,.15);color:#ff5555;border:1px solid rgba(255,40,40,.2);flex:0 0 48px;font-size:16px;">🗑</button>
+      <button class="map-btn" onclick="openZoneAssign()" id="map-zone-btn" style="display:none;background:rgba(123,47,255,.15);color:#c94dff;border:1px solid rgba(123,47,255,.3);flex:0 0 48px;font-size:16px;">🗂</button>
       <button class="map-btn secondary" onclick="cancelAdjust()">Annuler</button>
       <button class="map-btn primary" onclick="confirmAdjust()">✅ Confirmer</button>
     </div>
@@ -165,6 +166,12 @@ h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,23
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
 var SB = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
+var _zones = [];
+var _stickerForZone = null;
+var _drawMode = false;
+var _drawPts = [];
+var _drawMkrs = [];
+var _COLORS = ['#7b2fff','#2acc5a','#ff6b35','#4fc3f7','#f7c94f','#ff4daa','#a0e060'];
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
 
 var _busy = false;
@@ -227,6 +234,7 @@ function initMap() {
       paint:{'circle-radius':8,'circle-color':'#4fc3f7','circle-stroke-width':3,'circle-stroke-color':'#fff'}
     });
     loadStickerMarkers();
+    loadZones();
     startGPSTracking();
   });
 }
@@ -304,6 +312,7 @@ function startAdjust(spot) {
   document.getElementById('map-bar').style.display = 'flex';
   document.getElementById('map-addr').textContent = spot.label || 'Déplacez la carte pour ajuster';
   document.getElementById('map-delete-btn').style.display = 'flex';
+  document.getElementById('map-zone-btn').style.display = 'flex';
   document.getElementById('add-btn').style.display = 'none';
   _map.on('move', onMapMove);
 }
@@ -396,6 +405,7 @@ function cancelAdjust() {
   document.getElementById('map-crosshair').style.display = 'none';
   document.getElementById('map-bar').style.display = 'none';
   document.getElementById('map-delete-btn').style.display = 'none';
+  document.getElementById('map-zone-btn').style.display = 'none';
   document.getElementById('add-btn').style.display = 'flex';
 }
 
@@ -485,6 +495,249 @@ function goToSticker(id) {
     .then(function(d){ if(d[0]) startAdjust(d[0]); });
   }, 300);
 }
+
+// ── ZONES JS ──
+async function loadZones() {
+  try {
+    var r = await fetch(SB+'/rest/v1/sticker_zones?select=*',{headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
+    _zones = await r.json();
+    renderZoneLayers();
+  } catch(e){}
+}
+
+function renderZoneLayers() {
+  if(!_map||!_map.getStyle()) return;
+  _zones.forEach(function(z){
+    if(_map.getLayer('zf'+z.id)) _map.removeLayer('zf'+z.id);
+    if(_map.getLayer('zl'+z.id)) _map.removeLayer('zl'+z.id);
+    if(_map.getSource('z'+z.id)) _map.removeSource('z'+z.id);
+    if(!z.polygon) return;
+    _map.addSource('z'+z.id,{type:'geojson',data:{type:'Feature',geometry:z.polygon}});
+    _map.addLayer({id:'zf'+z.id,type:'fill',source:'z'+z.id,paint:{'fill-color':z.color||'#7b2fff','fill-opacity':0.1}});
+    _map.addLayer({id:'zl'+z.id,type:'line',source:'z'+z.id,paint:{'line-color':z.color||'#7b2fff','line-width':2,'line-opacity':0.5}});
+  });
+}
+
+function openZonesSheet() {
+  var counts = {};
+  _zones.forEach(function(z){counts[z.id]={a:0,i:0};});
+  counts['none']={a:0,i:0};
+  if(_stickerData&&_stickerData.features){
+    _stickerData.features.forEach(function(f){
+      var r=JSON.parse(f.properties._raw||'{}');
+      var k=r.zone_id||'none';
+      if(!counts[k]) counts[k]={a:0,i:0};
+      if(r.active) counts[k].a++; else counts[k].i++;
+    });
+  }
+  var html='';
+  _zones.forEach(function(z){
+    var c=counts[z.id]||{a:0,i:0};
+    html+='<div class="zone-row">'
+      +'<div class="zone-dot" style="background:'+z.color+'"></div>'
+      +'<div style="flex:1"><div class="zone-name">'+z.name+'</div>'
+      +'<div class="zone-count">'+c.a+' actif'+(c.a>1?'s':'')+(c.i>0?' · <span style="color:#ff6b6b">'+c.i+' inactif'+(c.i>1?'s':'')+'</span>':'')+'</div></div>'
+      +'<button onclick="deleteZone(''+z.id+'')" style="padding:4px 9px;border:none;border-radius:6px;background:rgba(255,40,40,.12);color:#ff5555;font-size:12px;cursor:pointer;">✕</button>'
+      +'</div>';
+  });
+  var cn=counts['none'];
+  if(cn.a>0||cn.i>0){
+    html+='<div class="zone-row"><div class="zone-dot" style="background:#555"></div>'
+      +'<div style="flex:1"><div class="zone-name" style="color:rgba(240,234,248,.45);">Sans zone</div>'
+      +'<div class="zone-count">'+cn.a+' actif'+(cn.a>1?'s':'')+(cn.i>0?' · <span style="color:#ff6b6b">'+cn.i+' inactif'+(cn.i>1?'s':'')+'</span>':'')+'</div></div></div>';
+  }
+  if(!html) html='<div style="padding:16px;text-align:center;font-size:13px;color:rgba(240,234,248,.3);">Aucune zone — crée-en une !</div>';
+  document.getElementById('zones-list').innerHTML=html;
+  document.getElementById('zones-overlay').style.display='block';
+  document.getElementById('zones-sheet').classList.add('open');
+}
+
+function closeZonesSheet(){
+  document.getElementById('zones-sheet').classList.remove('open');
+  document.getElementById('zones-overlay').style.display='none';
+}
+
+async function deleteZone(id){
+  if(!confirm('Supprimer cette zone ?')) return;
+  await fetch(SB+'/rest/v1/sticker_zones?id=eq.'+id,{method:'DELETE',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
+  await loadZones();
+  openZonesSheet();
+}
+
+// Assignation
+function openZoneAssign(){
+  if(!_adjustId) return;
+  // Trouver le spot actuel
+  var raw=null;
+  if(_stickerData&&_stickerData.features){
+    _stickerData.features.forEach(function(f){
+      var r=JSON.parse(f.properties._raw||'{}');
+      if(r.id===_adjustId) raw=r;
+    });
+  }
+  _stickerForZone={id:_adjustId,zone_id:raw?raw.zone_id:null};
+  var curZone=_stickerForZone.zone_id;
+  document.getElementById('assign-title').textContent='Zone du sticker';
+  var html='<div class="assign-item" onclick="assignZone(null)">'
+    +'<div class="assign-radio'+((!curZone)?' on':'')+'">'+(!curZone?'✓':'')+'</div>'
+    +'<div style="font-size:14px;color:rgba(240,234,248,.55);">Sans zone</div></div>';
+  _zones.forEach(function(z){
+    var on=curZone===z.id;
+    html+='<div class="assign-item" onclick="assignZone(''+z.id+'')">'
+      +'<div class="assign-radio'+(on?' on':'')+'" style="'+(on?'background:'+z.color+';border-color:'+z.color+';':'')+'">'+( on?'✓':'')+'</div>'
+      +'<div class="zone-dot" style="background:'+z.color+'"></div>'
+      +'<div style="font-size:14px;color:#f0eaf8;">'+z.name+'</div></div>';
+  });
+  document.getElementById('assign-list').innerHTML=html;
+  document.getElementById('assign-overlay').style.display='block';
+  document.getElementById('assign-sheet').classList.add('open');
+}
+
+function closeAssignSheet(){
+  document.getElementById('assign-sheet').classList.remove('open');
+  document.getElementById('assign-overlay').style.display='none';
+}
+
+async function assignZone(zid){
+  if(!_stickerForZone) return;
+  await fetch(SB+'/rest/v1/spots?id=eq.'+_stickerForZone.id,{
+    method:'PATCH',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({zone_id:zid||null})
+  });
+  closeAssignSheet();
+  if(navigator.vibrate) navigator.vibrate([30]);
+  loadStickerMarkers();
+}
+
+// Dessin zone
+function startDrawZone(){
+  closeZonesSheet();
+  _drawMode=true;_drawPts=[];_drawMkrs=[];
+  document.getElementById('draw-bar').style.display='flex';
+  document.getElementById('draw-pts').textContent='0 point';
+  _map.getCanvas().style.cursor='crosshair';
+  _map.on('click',_onDrawClick);
+}
+
+function _onDrawClick(e){
+  if(!_drawMode) return;
+  var pt=[e.lngLat.lng,e.lngLat.lat];
+  _drawPts.push(pt);
+  var el=document.createElement('div');
+  el.style.cssText='width:9px;height:9px;border-radius:50%;background:#c94dff;border:2px solid #fff;';
+  _drawMkrs.push(new maplibregl.Marker({element:el}).setLngLat(pt).addTo(_map));
+  _updateDrawLine();
+  document.getElementById('draw-pts').textContent=_drawPts.length+' pt'+(+_drawPts.length>1?'s':'');
+}
+
+function _updateDrawLine(){
+  if(_drawPts.length<2) return;
+  var coords=_drawPts.concat([_drawPts[0]]);
+  if(_map.getSource('dl')){
+    _map.getSource('dl').setData({type:'Feature',geometry:{type:'LineString',coordinates:coords}});
+  } else {
+    _map.addSource('dl',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:coords}}});
+    _map.addLayer({id:'dl',type:'line',source:'dl',paint:{'line-color':'#c94dff','line-width':2,'line-dasharray':[2,2]}});
+  }
+}
+
+function undoDraw(){
+  if(!_drawPts.length) return;
+  _drawPts.pop();
+  var m=_drawMkrs.pop(); if(m) m.remove();
+  _updateDrawLine();
+  document.getElementById('draw-pts').textContent=_drawPts.length+' pt'+(+_drawPts.length>1?'s':'');
+}
+
+function cancelDraw(){
+  _drawMode=false;_drawPts=[];
+  _drawMkrs.forEach(function(m){m.remove();}); _drawMkrs=[];
+  if(_map.getLayer('dl')) _map.removeLayer('dl');
+  if(_map.getSource('dl')) _map.removeSource('dl');
+  _map.off('click',_onDrawClick);
+  _map.getCanvas().style.cursor='';
+  document.getElementById('draw-bar').style.display='none';
+}
+
+async function finishDraw(){
+  if(_drawPts.length<3){alert('Minimum 3 points');return;}
+  var name=prompt('Nom de la zone (ex: Torcy, Bussy...)');
+  if(!name) return;
+  var color=_COLORS[_zones.length%_COLORS.length];
+  var coords=_drawPts.concat([_drawPts[0]]);
+  await fetch(SB+'/rest/v1/sticker_zones',{
+    method:'POST',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({name:name,color:color,polygon:{type:'Polygon',coordinates:[coords]}})
+  });
+  cancelDraw();
+  if(navigator.vibrate) navigator.vibrate([50,30,100]);
+  await loadZones();
+  openZonesSheet();
+}
+
 </script>
+
+<!-- CSS zones -->
+<style>
+#zones-overlay,#assign-overlay,#draw-overlay{position:fixed;inset:0;z-index:49;display:none;}
+#zones-sheet,#assign-sheet{
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:rgba(10,5,22,.95);backdrop-filter:blur(16px);
+  border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.1);
+  padding:0 0 calc(20px + env(safe-area-inset-bottom,0px));
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);
+  max-height:75vh;overflow-y:auto;
+}
+#zones-sheet.open,#assign-sheet.open{transform:translateY(0);}
+.sh-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto 0;}
+.sh-title{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:rgba(240,234,248,.3);padding:10px 16px 6px;}
+.zone-row{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.05);}
+.zone-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+.zone-name{font-size:14px;font-weight:600;color:#f0eaf8;}
+.zone-count{font-size:11px;color:rgba(240,234,248,.4);margin-top:1px;}
+.assign-item{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;}
+.assign-item:active{background:rgba(255,255,255,.04);}
+.assign-radio{width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.assign-radio.on{background:#7b2fff;border-color:#7b2fff;color:#fff;}
+#draw-bar{
+  position:absolute;top:62px;left:50%;transform:translateX(-50%);z-index:20;
+  background:rgba(10,5,22,.9);backdrop-filter:blur(8px);
+  border:1px solid rgba(123,47,255,.5);border-radius:12px;
+  padding:8px 12px;display:none;align-items:center;gap:8px;white-space:nowrap;
+}
+#draw-bar span{font-size:12px;color:rgba(240,234,248,.7);}
+.draw-btn{padding:5px 10px;border-radius:7px;border:none;font-size:12px;font-weight:700;cursor:pointer;}
+</style>
+
+<!-- Panel zones -->
+<div id="zones-overlay" onclick="closeZonesSheet()"></div>
+<div id="zones-sheet">
+  <div class="sh-handle"></div>
+  <div class="sh-title">📍 Zones</div>
+  <div id="zones-list"></div>
+  <div style="padding:12px 16px;display:flex;gap:8px;">
+    <button onclick="startDrawZone()" style="flex:1;padding:11px;border:none;border-radius:11px;background:linear-gradient(135deg,#7b2fff,#c94dff);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">+ Nouvelle zone</button>
+    <button onclick="closeZonesSheet()" style="flex:0 0 80px;padding:11px;border:none;border-radius:11px;background:rgba(255,255,255,.07);color:rgba(240,234,248,.5);font-size:13px;cursor:pointer;">Fermer</button>
+  </div>
+</div>
+
+<!-- Panel assignation -->
+<div id="assign-overlay" onclick="closeAssignSheet()"></div>
+<div id="assign-sheet">
+  <div class="sh-handle"></div>
+  <div class="sh-title" id="assign-title">Assigner une zone</div>
+  <div id="assign-list"></div>
+</div>
+
+<!-- Barre dessin -->
+<div id="draw-bar">
+  <span id="draw-pts">0 point</span>
+  <button class="draw-btn" onclick="undoDraw()" style="background:rgba(255,255,255,.1);color:#f0eaf8;">↩</button>
+  <button class="draw-btn" onclick="finishDraw()" style="background:linear-gradient(135deg,#7b2fff,#c94dff);color:#fff;">Valider</button>
+  <button class="draw-btn" onclick="cancelDraw()" style="background:rgba(255,40,40,.15);color:#ff5555;">✕</button>
+</div>
+
 </body>
 </html>
