@@ -197,7 +197,7 @@ function _sendFinal() {
   var ua = navigator.userAgent;
   var dev = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : 'Desktop';
   var cl = _clicks.length > 0 ? 'Oui : '+_clicks.join(', ') : 'Non';
-  var msg = 'Sticker scanne\n'+ts+'\nDuree : '+ds+'\nClics : '+cl+'\n'+_locS+'\n'+dev;
+  var msg = '🎯 Sticker scanné\n📅 '+ts+'\n⏱ '+ds+'\n🖱 '+cl+'\n🌍 '+_locS+'\n'+dev+'\n';
   fetch('https://api.telegram.org/bot'+_tgTok+'/sendMessage',{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({chat_id:_tgCh,text:msg})
