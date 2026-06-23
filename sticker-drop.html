@@ -693,15 +693,56 @@ async function finishDraw(){
   if(!name) return;
   var color=_COLORS[_zones.length%_COLORS.length];
   var coords=_drawPts.concat([_drawPts[0]]);
-  await fetch(SB+'/rest/v1/sticker_zones',{
+  var polygon={type:'Polygon',coordinates:[coords]};
+
+  // Créer la zone et récupérer son ID
+  var r=await fetch(SB+'/rest/v1/sticker_zones',{
     method:'POST',
-    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify({name:name,color:color,polygon:{type:'Polygon',coordinates:[coords]}})
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+    body:JSON.stringify({name:name,color:color,polygon:polygon})
   });
+  var zones=await r.json();
+  var newZoneId=zones[0]&&zones[0].id;
+
+  // Auto-assigner les stickers dans le polygone
+  if(newZoneId&&_stickerData&&_stickerData.features){
+    var inside=[];
+    _stickerData.features.forEach(function(f){
+      var raw=JSON.parse(f.properties._raw||'{}');
+      if(raw.lat&&raw.lng&&pointInPolygon([raw.lng,raw.lat],coords)){
+        inside.push(raw.id);
+      }
+    });
+    // Mettre à jour tous les stickers dans la zone en parallèle
+    if(inside.length>0){
+      await Promise.all(inside.map(function(id){
+        return fetch(SB+'/rest/v1/spots?id=eq.'+id,{
+          method:'PATCH',
+          headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify({zone_id:newZoneId})
+        });
+      }));
+    }
+    if(navigator.vibrate) navigator.vibrate([50,30,100]);
+    alert(name+' créée — '+inside.length+' sticker'+(inside.length>1?'s':'')+' assigné'+(inside.length>1?'s':''));
+  }
+
   cancelDraw();
-  if(navigator.vibrate) navigator.vibrate([50,30,100]);
   await loadZones();
+  await loadStickerMarkers();
   openZonesSheet();
+}
+
+// Point dans polygone (ray casting)
+function pointInPolygon(point,polygon){
+  var x=point[0],y=point[1];
+  var inside=false;
+  for(var i=0,j=polygon.length-1;i<polygon.length;j=i++){
+    var xi=polygon[i][0],yi=polygon[i][1];
+    var xj=polygon[j][0],yj=polygon[j][1];
+    if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
 }
 
 </script>
