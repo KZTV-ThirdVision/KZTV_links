@@ -183,29 +183,6 @@ function buildPlayer() {
 }
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
 var _cfg = null;
-var _sessionStart = Date.now();
-var _clicks = [];
-var _tgTok = '8666858581:AAEYA1bsIIUCv2YctFbqPXPdjzPg4TFG504';
-var _tgCh = '7629731239';
-var _locS = 'Localisation inconnue';
-var _finalSent = false;
-function _sendFinal() {
-  if (_finalSent) return; _finalSent = true;
-  var d = Math.round((Date.now()-_sessionStart)/1000);
-  var ds = d<60 ? d+'s' : Math.floor(d/60)+'min'+(d%60)+'s';
-  var ts = new Date().toLocaleString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
-  var ua = navigator.userAgent;
-  var dev = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : 'Desktop';
-  var cl = _clicks.length > 0 ? 'Oui : '+_clicks.join(', ') : 'Non';
-  var msg = '🎯 Sticker scanné\n📅 '+ts+'\n⏱ '+ds+'\n🖱 '+cl+'\n🌍 '+_locS+'\n'+dev+'\n';
-  fetch('https://api.telegram.org/bot'+_tgTok+'/sendMessage',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({chat_id:_tgCh,text:msg})
-  }).catch(function(){});
-}
-document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='hidden') _sendFinal();
-});
 // Charger la config depuis Supabase
 async function loadConfig() {
   try {
@@ -225,231 +202,33 @@ async function loadConfig() {
       _bgLoaded = true;
     }
   } catch(e) {}
-  _sessionStart = Date.now();fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
-<title>KZTV</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;width:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;background:#000;}
-
-/* ── BACKGROUND ── */
-#bg{position:fixed;inset:0;z-index:0;background:#080412;}
-#bg-img{position:absolute;inset:-20px;background-size:cover;background-position:center;filter:blur(18px) brightness(.35);transform:scale(1.1);transition:filter 1.2s ease;}
-#bg-img.revealed{filter:blur(4px) brightness(.25);}
-
-/* ── COOKIE BANNER ── */
-#cookie{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;}
-#cookie-box{background:rgba(13,8,32,.92);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;backdrop-filter:blur(20px);}
-#cookie-box .ic{font-size:28px;margin-bottom:12px;}
-#cookie-box h3{font-size:17px;font-weight:700;color:#f0eaf8;margin-bottom:10px;}
-#cookie-box p{font-size:13px;color:rgba(240,234,248,.5);line-height:1.6;margin-bottom:20px;}
-.cookie-btns{display:flex;flex-direction:column;gap:8px;}
-.btn-accept{width:100%;padding:14px;background:linear-gradient(135deg,#7b2fff,#c94dff);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;}
-.btn-refuse{width:100%;padding:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(240,234,248,.5);font-size:14px;cursor:pointer;}
-
-/* ── CONTENU ── */
-#content{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:env(safe-area-inset-top,20px) 20px env(safe-area-inset-bottom,20px);overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .8s ease .2s;}
-#content.visible{opacity:1;pointer-events:all;}
-
-/* Logo */
-#logo{margin-top:24px;margin-bottom:16px;text-align:center;}
-#logo img{height:40px;opacity:.9;filter:brightness(0) invert(1);}
-#logo-text{font-size:28px;font-weight:900;letter-spacing:.12em;color:#fff;}
-
-/* Titre néon */
-#main-title{text-align:center;margin-bottom:8px;font-size:28px;font-weight:400;
-  font-family:'IM Fell English',serif;font-style:normal;
-  color:#ffffff;
-  -webkit-text-stroke:0px transparent;
-  text-shadow:0 0 18px rgba(201,77,255,.9),0 0 40px rgba(123,47,255,.6),0 0 80px rgba(123,47,255,.3);
-  animation:glitch 4s steps(1) infinite;}
-@keyframes glitch{
-  0%{text-shadow:0 0 18px rgba(201,77,255,.9),0 0 40px rgba(123,47,255,.6);}
-  4%{text-shadow:0 0 2px rgba(201,77,255,.2);}
-  5%{text-shadow:0 0 80px rgba(201,77,255,1),0 0 160px rgba(123,47,255,.9),0 0 30px #fff;}
-  6%{text-shadow:0 0 2px rgba(201,77,255,.1);}
-  7%{text-shadow:0 0 50px rgba(201,77,255,1),0 0 80px rgba(123,47,255,.7);}
-  8%{text-shadow:0 0 2px rgba(201,77,255,.1);}
-  9%{text-shadow:0 0 60px rgba(201,77,255,1),0 0 120px rgba(123,47,255,.8);}
-  12%{text-shadow:0 0 18px rgba(201,77,255,.9),0 0 40px rgba(123,47,255,.6);}
-  60%{text-shadow:0 0 18px rgba(201,77,255,.9),0 0 40px rgba(123,47,255,.6);}
-  61%{text-shadow:0 0 2px rgba(201,77,255,.2);}
-  62%{text-shadow:0 0 100px rgba(201,77,255,1),0 0 200px rgba(123,47,255,.8),0 0 40px #fff;}
-  63%{text-shadow:0 0 2px rgba(201,77,255,.1);}
-  64%{text-shadow:0 0 60px rgba(201,77,255,1),0 0 100px rgba(123,47,255,.7);}
-  65%{text-shadow:0 0 2px rgba(201,77,255,.1);}
-  66%{text-shadow:0 0 25px rgba(201,77,255,.95),0 0 50px rgba(123,47,255,.7);}
-  100%{text-shadow:0 0 18px rgba(201,77,255,.9),0 0 40px rgba(123,47,255,.6);}
-}
-
-/* Sous-titre */
-#subtitle{text-align:center;font-size:15px;font-family:'IM Fell English',serif;color:rgba(240,234,248,.55);line-height:1.7;margin-bottom:20px;max-width:280px;}
-
-/* Vidéo */
-#video-wrap{width:100%;max-width:400px;margin-bottom:14px;border-radius:14px;overflow:hidden;background:#000;position:relative;}
-#video-wrap.landscape{aspect-ratio:16/9;}
-#video-wrap.portrait{aspect-ratio:9/16;}
-#video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none;}
-
-/* Track info */
-#track-info{width:100%;max-width:400px;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
-#track-thumb{width:52px;height:52px;border-radius:8px;background:rgba(123,47,255,.15);border:1px solid rgba(123,47,255,.2);flex-shrink:0;background-size:cover;background-position:center;}
-#track-details{flex:1;min-width:0;}
-#track-title{font-size:15px;font-weight:400;font-family:'IM Fell English',serif;color:#f0eaf8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-#track-artist{font-size:12px;color:rgba(240,234,248,.45);margin-top:2px;}
-#track-extra{font-size:11px;color:rgba(240,234,248,.3);margin-top:1px;}
-
-/* Liens réseaux */
-#links{width:100%;max-width:400px;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
-.lnk{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);text-decoration:none;color:#f0eaf8;font-size:13px;font-weight:600;transition:background .2s;}
-.lnk:hover{background:rgba(255,255,255,.08);}
-.lnk .ic{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.lnk-sp .ic{background:#1ed760;}
-.lnk-ig .ic{background:linear-gradient(135deg,#f58529,#dd2a7b,#8134af);}
-.lnk-yt .ic{background:#ff0000;}
-.lnk-tt .ic{background:#000;border:1px solid rgba(255,255,255,.1);}
-</style>
-</head>
-<body>
-
-<div id="bg"><div id="bg-img"></div></div>
-
-<!-- COOKIE BANNER -->
-<div id="cookie">
-  <div id="cookie-box">
-    <div class="ic">🍪</div>
-    <h3>Ce site utilise des cookies</h3>
-    <p>Nous et nos partenaires utilisons des cookies pour personnaliser votre expérience et mesurer l'audience. Consultez notre <u>politique de confidentialité</u>.</p>
-    <div class="cookie-btns">
-      <button class="btn-accept" onclick="reveal()">Tout accepter</button>
-      <button class="btn-refuse" onclick="reveal()">Refuser</button>
-    </div>
-  </div>
-</div>
-
-<!-- CONTENU -->
-<div id="content">
-  <div id="logo"><img src="https://raw.githubusercontent.com/KZTV-ThirdVision/KZTV_links/main/logo.png" alt="KZTV" style="height:90px;filter:brightness(0) invert(1);opacity:.95;"></div>
-  <div id="main-title">NOUVELLE ÈRE</div>
-  <div id="subtitle">Rap technique. Indépendant.<br>France · 2026</div>
-  <div id="video-wrap" class="landscape">
-    <div id="yt-frame"></div>
-  </div>
-  <div id="track-info">
-    <!-- Cover Spotify — chargée dynamiquement via oEmbed -->
-    <div id="track-thumb" style="background-image:none;"></div>
-    <div id="track-details">
-      <div id="track-title">KZTV0 (La der)</div>
-      <div id="track-artist">KZTV</div>
-      <div id="track-extra">France · third vision · 2026</div>
-    </div>
-    <!-- Bouton Spotify -->
-    <a id="spotify-btn" href="#" target="_blank" onclick="event.stopPropagation()"
-      style="flex-shrink:0;width:34px;height:34px;border-radius:50%;background:#1ed760;display:flex;align-items:center;justify-content:center;text-decoration:none;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="#000"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-    </a>
-  </div>
-  <div id="links">
-    <a class="lnk lnk-sp" id="lnk-spotify" href="#" target="_blank">
-      <div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="#000"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg></div>
-      Spotify
-    </a>
-    <a class="lnk lnk-ig" id="lnk-instagram" href="#" target="_blank">
-      <div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></div>
-      Instagram
-    </a>
-    <a class="lnk lnk-yt" id="lnk-youtube" href="#" target="_blank">
-      <div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg></div>
-      YouTube
-    </a>
-    <a class="lnk lnk-tt" id="lnk-tiktok" href="#" target="_blank">
-      <div class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.79 1.54V6.79a4.85 4.85 0 01-1.02-.1z"/></svg></div>
-      TikTok
-    </a>
-  </div>
-</div>
-
-<script>
-var SB = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
-var _ytPlayer = null;
-var _ytReady = false;
-var _ytVideoId = '';
-var _revealed = false;
-
-// Charger l'API YouTube IFrame
-var tag = document.createElement('script');
-tag.src = 'https://www.youtube.com/iframe_api';
-document.head.appendChild(tag);
-
-function onYouTubeIframeAPIReady() {
-  _ytReady = true;
-  if (_ytVideoId) buildPlayer();
-}
-
-function buildPlayer() {
-  if (!_ytReady || !_ytVideoId) return;
-  _ytPlayer = new YT.Player('yt-frame', {
-    videoId: _ytVideoId,
-    playerVars: {
-      rel: 0, modestbranding: 1, playsinline: 1,
-      controls: 1, autoplay: 0
-    },
-    events: {
-      onReady: function() {
-        // Player prêt — si l'utilisateur a déjà cliqué, lancer
-        if (_revealed) _ytPlayer.playVideo();
-      }
-    }
-  });
-}
-var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
-var _cfg = null;
-var _sessionStart = Date.now();
-var _clicks = [];
-var _tgTok = '8666858581:AAEYA1bsIIUCv2YctFbqPXPdjzPg4TFG504';
-var _tgCh = '7629731239';
-var _locS = 'Localisation inconnue';
-var _finalSent = false;
-function _sendFinal() {
-  if (_finalSent) return; _finalSent = true;
-  var d = Math.round((Date.now()-_sessionStart)/1000);
-  var ds = d<60 ? d+'s' : Math.floor(d/60)+'min'+(d%60)+'s';
-  var ts = new Date().toLocaleString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
-  var ua = navigator.userAgent;
-  var dev = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : 'Desktop';
-  var cl = _clicks.length > 0 ? 'Oui : '+_clicks.join(', ') : 'Non';
-  var msg = '🎯 Sticker scanné\n📅 '+ts+'\n⏱ '+ds+'\n🖱 '+cl+'\n🌍 '+_locS+'\n'+dev+'\n';
-  fetch('https://api.telegram.org/bot'+_tgTok+'/sendMessage',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({chat_id:_tgCh,text:msg})
-  }).catch(function(){});
-}
-document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='hidden') _sendFinal();
-});
-// Charger la config depuis Supabase
-async function loadConfig() {
+  // Notif Telegram sticker scan + géoloc IP
   try {
-    var r = await fetch(SB+'/rest/v1/settings?key=eq.kztv_page&select=value',
-      {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
-    var d = await r.json();
-    if (d && d[0]) _cfg = JSON.parse(d[0].value);
-  } catch(e) {}
-  // Charger la photo de fond depuis settings séparée (base64)
-  var _bgLoaded = false;
-  try {
-    var r2 = await fetch(SB+'/rest/v1/settings?key=eq.kztv_page_bg&select=value',
-      {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
-    var d2 = await r2.json();
-    if (d2 && d2[0] && d2[0].value) {
-      document.getElementById('bg-img').style.backgroundImage = "url('" + d2[0].value + "')";
-      _bgLoaded = true;
-    }
+    var _tgToken = '8666858581:AAEYA1bsIIUCv2YctFbqPXPdjzPg4TFG504';
+    var _tgChat = '7629731239';
+    var _now = new Date();
+    var _ts = _now.toLocaleString('fr-FR', {timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
+    var _ua = navigator.userAgent;
+    var _device = /iPhone|iPad/.test(_ua) ? '\ud83d\udcf1 iOS' : /Android/.test(_ua) ? '\ud83e\udd16 Android' : '\ud83d\udcbb Desktop';
+    fetch('https://ipapi.co/json/')
+      .then(function(r){ return r.json(); })
+      .then(function(geo){
+        var _loc = (geo.city || '?') + ', ' + (geo.country_name || '?');
+        var _msg = '\ud83c\udfaf Sticker scann\u00e9\n\ud83d\udcc5 ' + _ts + '\n\ud83c\udf0d ' + _loc + '\n' + _device;
+        fetch('https://api.telegram.org/bot' + _tgToken + '/sendMessage', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({chat_id: _tgChat, text: _msg})
+        }).catch(function(){});
+      })
+      .catch(function(){
+        var _msg = '\ud83c\udfaf Sticker scann\u00e9\n\ud83d\udcc5 ' + _ts + '\n\ud83c\udf0d Localisation inconnue\n' + _device;
+        fetch('https://api.telegram.org/bot' + _tgToken + '/sendMessage', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({chat_id: _tgChat, text: _msg})
+        }).catch(function(){});
+      });
   } catch(e) {}
   applyConfig(_bgLoaded);
 }
@@ -477,16 +256,6 @@ function applyConfig(bgAlreadyLoaded) {
   setLink('lnk-instagram', lnks.instagram);
   setLink('lnk-youtube', lnks.youtube);
   setLink('lnk-tiktok', lnks.tiktok);
-  ['spotify','instagram','youtube','tiktok'].forEach(function(id){
-    var el=document.getElementById('lnk-'+id);
-    if(el) el.addEventListener('click',function(){
-      var n=id.charAt(0).toUpperCase()+id.slice(1);
-      if(_clicks.indexOf(n)===-1) _clicks.push(n);
-    });
-  });
-  fetch('https://ipapi.co/json/').then(function(r){return r.json();}).then(function(g){
-    _locS=(g.city||'?')+', '+(g.country_name||'?');
-  }).catch(function(){});
   // Vidéo : préparer mais pas lancer encore
   if (c.yt_id) {
     _ytVideoId = c.yt_id;
