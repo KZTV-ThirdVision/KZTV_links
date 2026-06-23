@@ -80,54 +80,6 @@ h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,23
 .map-btn{flex:1;padding:12px;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
 .map-btn.primary{background:linear-gradient(135deg,#7b2fff,#c94dff);color:#fff;}
 .map-btn.secondary{background:rgba(255,255,255,.08);color:rgba(240,234,248,.6);border:1px solid rgba(255,255,255,.1);}
-
-/* Panel zones */
-#zones-sheet{
-  position:fixed;bottom:0;left:0;right:0;z-index:50;
-  background:rgba(8,4,18,.92);backdrop-filter:blur(16px);
-  border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.1);
-  padding:0 0 calc(20px + env(safe-area-inset-bottom,0px));
-  transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);
-  max-height:70vh;overflow-y:auto;
-}
-#zones-sheet.open{transform:translateY(0);}
-#zones-overlay{position:fixed;inset:0;z-index:49;display:none;}
-.zone-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;}
-.zone-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
-.zone-info{flex:1;}
-.zone-name{font-size:14px;font-weight:600;color:#f0eaf8;}
-.zone-count{font-size:12px;color:rgba(240,234,248,.4);margin-top:2px;}
-.zone-inactive{color:#ff6b6b;font-size:11px;}
-.sh-handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto 0;}
-.sh-title{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:rgba(240,234,248,.3);padding:12px 16px 8px;}
-.sh-actions{display:flex;gap:8px;padding:12px 16px 4px;}
-.sh-btn{flex:1;padding:10px;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;}
-.sh-btn.primary{background:linear-gradient(135deg,#7b2fff,#c94dff);color:#fff;}
-.sh-btn.danger{background:rgba(255,40,40,.12);color:#ff5555;border:1px solid rgba(255,40,40,.2);}
-
-/* Zone assignment sheet */
-#assign-sheet{
-  position:fixed;bottom:0;left:0;right:0;z-index:52;
-  background:rgba(8,4,18,.95);backdrop-filter:blur(16px);
-  border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.1);
-  padding:0 0 calc(20px + env(safe-area-inset-bottom,0px));
-  transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);
-}
-#assign-sheet.open{transform:translateY(0);}
-#assign-overlay{position:fixed;inset:0;z-index:51;display:none;}
-.assign-item{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;}
-.assign-item:active{background:rgba(255,255,255,.05);}
-.assign-check{width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:11px;}
-.assign-check.active{background:#7b2fff;border-color:#7b2fff;}
-
-/* Dessin zone */
-#draw-bar{
-  position:absolute;top:60px;left:50%;transform:translateX(-50%);z-index:20;
-  background:rgba(8,4,18,.9);backdrop-filter:blur(8px);
-  border:1px solid rgba(123,47,255,.4);border-radius:12px;
-  padding:8px 14px;display:none;align-items:center;gap:10px;
-}
-#draw-bar span{font-size:12px;color:rgba(240,234,248,.7);}
 </style>
 </head>
 <body>
@@ -155,10 +107,10 @@ h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,23
 <div class="panel" id="panel-map">
   <div id="sticker-map"></div>
   <!-- Compteur stickers en haut au centre -->
-  <div id="sd-counter" onclick="openZonesSheet()" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:10;
-    background:rgba(8,4,18,.85);backdrop-filter:blur(8px);border:1px solid rgba(42,204,90,.3);
-    border-radius:20px;padding:6px 14px;white-space:nowrap;cursor:pointer;">
-    <span style="font-size:12px;font-weight:700;color:#2acc5a;">⬤ <span id="sd-counter-val">0</span> stickers actifs ›</span>
+  <div id="sd-counter" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:10;
+    background:rgba(8,4,18,.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);
+    border-radius:20px;padding:6px 14px;pointer-events:none;white-space:nowrap;">
+    <span style="font-size:12px;font-weight:700;color:#2acc5a;">⬤ <span id="sd-counter-val">0</span> stickers actifs</span>
   </div>
   <!-- Contrôles map -->
   <div id="map-controls" style="position:absolute;top:14px;left:14px;z-index:10;display:flex;flex-direction:column;gap:8px;">
@@ -210,44 +162,9 @@ h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,23
   </div>
 </div>
 
-<!-- Barre de dessin de zone -->
-<div id="draw-bar">
-  <span id="draw-status">Tap la map pour poser des points</span>
-  <button onclick="undoDrawPoint()" style="padding:4px 8px;border-radius:6px;border:none;background:rgba(255,255,255,.1);color:#f0eaf8;font-size:12px;">↩</button>
-  <button onclick="finishZone()" style="padding:4px 10px;border-radius:6px;border:none;background:linear-gradient(135deg,#7b2fff,#c94dff);color:#fff;font-size:12px;font-weight:700;">Valider</button>
-  <button onclick="cancelZone()" style="padding:4px 8px;border-radius:6px;border:none;background:rgba(255,40,40,.15);color:#ff5555;font-size:12px;">✕</button>
-</div>
-
-<!-- Panel zones -->
-<div id="zones-overlay" onclick="closeZonesSheet()"></div>
-<div id="zones-sheet">
-  <div class="sh-handle"></div>
-  <div class="sh-title">📍 Stickers par zone</div>
-  <div id="zones-list"></div>
-  <div class="sh-actions">
-    <button class="sh-btn primary" onclick="startDrawZone()">+ Nouvelle zone</button>
-    <button class="sh-btn" onclick="closeZonesSheet()" style="background:rgba(255,255,255,.07);color:rgba(240,234,248,.5);">Fermer</button>
-  </div>
-</div>
-
-<!-- Panel assignation zone -->
-<div id="assign-overlay" onclick="closeAssignSheet()"></div>
-<div id="assign-sheet">
-  <div class="sh-handle"></div>
-  <div class="sh-title" id="assign-title">Assigner à une zone</div>
-  <div id="assign-list"></div>
-</div>
-
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
 var SB = 'https://bkqdhndjmpwdtcelrdit.supabase.co';
-var _zones = [];
-var _drawPoints = [];
-var _drawMode = false;
-var _drawMarkers = [];
-var _drawLine = null;
-var _currentSpotForAssign = null;
-var _ZONE_COLORS = ['#7b2fff','#2acc5a','#ff6b35','#4fc3f7','#f7c94f','#ff4daa','#a0ff4d'];
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
 
 var _busy = false;
@@ -310,14 +227,7 @@ function initMap() {
       paint:{'circle-radius':8,'circle-color':'#4fc3f7','circle-stroke-width':3,'circle-stroke-color':'#fff'}
     });
     loadStickerMarkers();
-    loadZones();
     startGPSTracking();
-    // Clic sur sticker → ouvrir panel assign zone
-    _map.on('click','stickers-layer',function(e){
-      var props = e.features[0].properties;
-      var spot = JSON.parse(props._raw);
-      startAdjust(spot);
-    });
   });
 }
 
@@ -387,25 +297,8 @@ function loadStickerMarkers() {
 
 // ── AJUSTEMENT POSITION ──
 function startAdjust(spot) {
-  // Si pas en mode adjust, juste ouvrir le menu d'options
-  if (!_adjustMode) {
-    openAssignSheet(spot);
-    return;
-  }
-  _adjustId = spot.id;
-  _map.flyTo({center:[spot.lng,spot.lat],zoom:17});
-  document.getElementById('map-crosshair').style.display = 'block';
-  document.getElementById('map-bar').style.display = 'flex';
-  document.getElementById('map-addr').textContent = spot.label || 'Déplacez la carte pour ajuster';
-  document.getElementById('map-delete-btn').style.display = 'flex';
-  document.getElementById('add-btn').style.display = 'none';
-  _map.on('move', onMapMove);
-}
-
-function startAdjustMode(spot) {
   _adjustId = spot.id;
   _adjustMode = true;
-  closeAssignSheet();
   _map.flyTo({center:[spot.lng,spot.lat],zoom:17});
   document.getElementById('map-crosshair').style.display = 'block';
   document.getElementById('map-bar').style.display = 'flex';
@@ -591,235 +484,6 @@ function goToSticker(id) {
     .then(function(r){return r.json();})
     .then(function(d){ if(d[0]) startAdjust(d[0]); });
   }, 300);
-}
-
-// ── ZONES ──
-var _zonesData = {}; // zone_id -> {actifs, inactifs}
-
-async function loadZones() {
-  try {
-    var r = await fetch(SB+'/rest/v1/sticker_zones?select=*', {headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
-    _zones = await r.json();
-    renderZoneLayers();
-  } catch(e) {}
-}
-
-function renderZoneLayers() {
-  if (!_map) return;
-  // Supprimer les layers/sources existants
-  _zones.forEach(function(z) {
-    if (_map.getLayer('zone-fill-'+z.id)) _map.removeLayer('zone-fill-'+z.id);
-    if (_map.getLayer('zone-line-'+z.id)) _map.removeLayer('zone-line-'+z.id);
-    if (_map.getSource('zone-'+z.id)) _map.removeSource('zone-'+z.id);
-  });
-  _zones.forEach(function(z) {
-    if (!z.polygon || !z.polygon.coordinates) return;
-    _map.addSource('zone-'+z.id, {type:'geojson', data:{type:'Feature',geometry:z.polygon}});
-    _map.addLayer({id:'zone-fill-'+z.id, type:'fill', source:'zone-'+z.id,
-      paint:{'fill-color':z.color||'#7b2fff','fill-opacity':0.12}}, 'stickers-layer');
-    _map.addLayer({id:'zone-line-'+z.id, type:'line', source:'zone-'+z.id,
-      paint:{'line-color':z.color||'#7b2fff','line-width':2,'line-opacity':0.6}}, 'stickers-layer');
-  });
-}
-
-function openZonesSheet() {
-  // Calculer actifs/inactifs par zone
-  _zonesData = {};
-  _zones.forEach(function(z){ _zonesData[z.id]={actifs:0,inactifs:0,name:z.name,color:z.color||'#7b2fff'}; });
-  _zonesData['null'] = {actifs:0,inactifs:0,name:'Sans zone',color:'#555'};
-
-  if (_stickerData && _stickerData.features) {
-    _stickerData.features.forEach(function(f) {
-      var raw = JSON.parse(f.properties._raw||'{}');
-      var zid = raw.zone_id || 'null';
-      if (!_zonesData[zid]) _zonesData[zid] = {actifs:0,inactifs:0,name:'Sans zone',color:'#555'};
-      if (raw.active) _zonesData[zid].actifs++;
-      else _zonesData[zid].inactifs++;
-    });
-  }
-
-  var list = document.getElementById('zones-list');
-  var html = '';
-  // Zones nommées d'abord
-  _zones.forEach(function(z) {
-    var zd = _zonesData[z.id]||{actifs:0,inactifs:0};
-    html += '<div class="zone-row" onclick="focusZone(''+z.id+'')">'
-      +'<div class="zone-dot" style="background:'+z.color+'"></div>'
-      +'<div class="zone-info"><div class="zone-name">'+z.name+'</div>'
-      +'<div class="zone-count">'+zd.actifs+' actif'+(zd.actifs>1?'s':'')
-      +(zd.inactifs>0?' · <span class="zone-inactive">'+zd.inactifs+' inactif'+(zd.inactifs>1?'s':'')+'</span>':'')
-      +'</div></div>'
-      +'<button onclick="event.stopPropagation();deleteZone(''+z.id+'')" style="padding:4px 8px;border:none;border-radius:6px;background:rgba(255,40,40,.12);color:#ff5555;font-size:11px;">✕</button>'
-      +'</div>';
-  });
-  // Sans zone
-  var nz = _zonesData['null'];
-  if (nz && (nz.actifs>0||nz.inactifs>0)) {
-    html += '<div class="zone-row"><div class="zone-dot" style="background:#555"></div>'
-      +'<div class="zone-info"><div class="zone-name" style="color:rgba(240,234,248,.5);">Sans zone</div>'
-      +'<div class="zone-count">'+nz.actifs+' actif'+(nz.actifs>1?'s':'')
-      +(nz.inactifs>0?' · <span class="zone-inactive">'+nz.inactifs+' inactif'+(nz.inactifs>1?'s':'')+'</span>':'')
-      +'</div></div></div>';
-  }
-  if (!html) html = '<div style="padding:16px;text-align:center;font-size:13px;color:rgba(240,234,248,.3);">Aucune zone créée</div>';
-  list.innerHTML = html;
-
-  document.getElementById('zones-overlay').style.display = 'block';
-  document.getElementById('zones-sheet').classList.add('open');
-}
-
-function closeZonesSheet() {
-  document.getElementById('zones-sheet').classList.remove('open');
-  document.getElementById('zones-overlay').style.display = 'none';
-}
-
-function focusZone(zid) {
-  closeZonesSheet();
-  var z = _zones.find(function(z){return z.id===zid;});
-  if (!z||!z.polygon||!z.polygon.coordinates) return;
-  // Calculer bounds du polygone
-  var coords = z.polygon.coordinates[0];
-  var bounds = coords.reduce(function(b,c){
-    return [[Math.min(b[0][0],c[0]),Math.min(b[0][1],c[1])],[Math.max(b[1][0],c[0]),Math.max(b[1][1],c[1])]];
-  }, [[coords[0][0],coords[0][1]],[coords[0][0],coords[0][1]]]);
-  _map.fitBounds(bounds, {padding:60, maxZoom:16});
-}
-
-async function deleteZone(zid) {
-  if (!confirm('Supprimer cette zone ?')) return;
-  await fetch(SB+'/rest/v1/sticker_zones?id=eq.'+zid, {
-    method:'DELETE', headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}
-  });
-  await loadZones();
-  openZonesSheet();
-}
-
-// ── DESSIN ZONE ──
-function startDrawZone() {
-  closeZonesSheet();
-  _drawMode = true;
-  _drawPoints = [];
-  _drawMarkers = [];
-  document.getElementById('draw-bar').style.display = 'flex';
-  document.getElementById('draw-status').textContent = 'Tap la map pour poser des points (min 3)';
-  _map.on('click', onDrawClick);
-  _map.getCanvas().style.cursor = 'crosshair';
-}
-
-function onDrawClick(e) {
-  if (!_drawMode) return;
-  var pt = [e.lngLat.lng, e.lngLat.lat];
-  _drawPoints.push(pt);
-  // Marqueur visuel
-  var el = document.createElement('div');
-  el.style.cssText = 'width:10px;height:10px;border-radius:50%;background:#c94dff;border:2px solid #fff;';
-  _drawMarkers.push(new maplibregl.Marker({element:el}).setLngLat(pt).addTo(_map));
-  // Mettre à jour la ligne
-  updateDrawLine();
-  document.getElementById('draw-status').textContent = _drawPoints.length+' point'+(_drawPoints.length>1?'s':'')+' — min 3 pour valider';
-}
-
-function updateDrawLine() {
-  if (_drawPoints.length < 2) return;
-  var coords = _drawPoints.concat([_drawPoints[0]]);
-  if (_map.getSource('draw-line')) {
-    _map.getSource('draw-line').setData({type:'Feature',geometry:{type:'LineString',coordinates:coords}});
-  } else {
-    _map.addSource('draw-line',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:coords}}});
-    _map.addLayer({id:'draw-line',type:'line',source:'draw-line',paint:{'line-color':'#c94dff','line-width':2,'line-dasharray':[2,2]}});
-  }
-}
-
-function undoDrawPoint() {
-  if (_drawPoints.length === 0) return;
-  _drawPoints.pop();
-  var m = _drawMarkers.pop();
-  if (m) m.remove();
-  updateDrawLine();
-}
-
-function cancelZone() {
-  _drawMode = false;
-  _drawPoints = [];
-  _drawMarkers.forEach(function(m){m.remove();}); _drawMarkers = [];
-  if (_map.getLayer('draw-line')) _map.removeLayer('draw-line');
-  if (_map.getSource('draw-line')) _map.removeSource('draw-line');
-  _map.off('click', onDrawClick);
-  _map.getCanvas().style.cursor = '';
-  document.getElementById('draw-bar').style.display = 'none';
-}
-
-async function finishZone() {
-  if (_drawPoints.length < 3) { alert('Min 3 points'); return; }
-  var name = prompt('Nom de la zone (ex: Torcy, Bussy...)');
-  if (!name) return;
-  var colorIdx = _zones.length % _ZONE_COLORS.length;
-  var color = _ZONE_COLORS[colorIdx];
-  // Fermer le polygone
-  var coords = _drawPoints.concat([_drawPoints[0]]);
-  var polygon = {type:'Polygon', coordinates:[coords]};
-  await fetch(SB+'/rest/v1/sticker_zones', {
-    method:'POST',
-    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify({name:name, color:color, polygon:polygon})
-  });
-  cancelZone();
-  if (navigator.vibrate) navigator.vibrate([50,30,100]);
-  await loadZones();
-  openZonesSheet();
-}
-
-// ── ASSIGNATION ZONE depuis le clic sur un sticker ──
-function openAssignSheet(spot) {
-  _currentSpotForAssign = spot;
-  var list = document.getElementById('assign-list');
-  document.getElementById('assign-title').textContent = 'Zone pour : '+(spot.label||'Sticker');
-  var html = '<div class="assign-item" onclick="assignZone(null)">'
-    +'<div class="assign-check'+((!spot.zone_id)?' active':'')+'">'+(!spot.zone_id?'✓':'')+'</div>'
-    +'<div style="font-size:14px;color:rgba(240,234,248,.6);">Sans zone</div></div>';
-  _zones.forEach(function(z) {
-    var active = spot.zone_id === z.id;
-    html += '<div class="assign-item" onclick="assignZone(''+z.id+'')">'
-      +'<div class="assign-check'+(active?' active':'')+'" style="'+(active?'background:'+z.color+';border-color:'+z.color+';':'')+'">'+( active?'✓':'')+'</div>'
-      +'<div class="zone-dot" style="background:'+z.color+'"></div>'
-      +'<div style="font-size:14px;color:#f0eaf8;">'+z.name+'</div></div>';
-  });
-  list.innerHTML = html;
-  // Ajouter actions en bas
-  html += '<div style="padding:12px 16px;display:flex;gap:8px;">'
-    +'<button onclick="startAdjustMode(_currentSpotForAssign);closeAssignSheet();" style="flex:1;padding:10px;border:none;border-radius:10px;background:rgba(255,255,255,.08);color:rgba(240,234,248,.7);font-size:13px;font-weight:700;cursor:pointer;">📍 Déplacer</button>'
-    +'<button onclick="deleteFromAssign()" style="flex:0 0 44px;padding:10px;border:none;border-radius:10px;background:rgba(255,40,40,.12);color:#ff5555;font-size:16px;cursor:pointer;">🗑</button>'
-    +'</div>';
-  list.innerHTML = html;
-  document.getElementById('assign-overlay').style.display = 'block';
-  document.getElementById('assign-sheet').classList.add('open');
-}
-
-async function deleteFromAssign() {
-  if (!_currentSpotForAssign) return;
-  if (!confirm('Supprimer ce sticker ?')) return;
-  await fetch(SB+'/rest/v1/spots?id=eq.'+_currentSpotForAssign.id, {
-    method:'DELETE', headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}
-  });
-  closeAssignSheet();
-  loadStickerMarkers();
-}
-
-function closeAssignSheet() {
-  document.getElementById('assign-sheet').classList.remove('open');
-  document.getElementById('assign-overlay').style.display = 'none';
-}
-
-async function assignZone(zoneId) {
-  if (!_currentSpotForAssign) return;
-  await fetch(SB+'/rest/v1/spots?id=eq.'+_currentSpotForAssign.id, {
-    method:'PATCH',
-    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify({zone_id: zoneId})
-  });
-  closeAssignSheet();
-  if (navigator.vibrate) navigator.vibrate([30]);
-  loadStickerMarkers();
 }
 </script>
 </body>
