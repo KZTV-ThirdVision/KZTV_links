@@ -183,6 +183,29 @@ function buildPlayer() {
 }
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
 var _cfg = null;
+var _sessionStart = Date.now();
+var _clicks = [];
+var _tgTok = '8666858581:AAEYA1bsIIUCv2YctFbqPXPdjzPg4TFG504';
+var _tgCh = '7629731239';
+var _locS = 'Localisation inconnue';
+var _finalSent = false;
+function _sendFinal() {
+  if (_finalSent) return; _finalSent = true;
+  var d = Math.round((Date.now()-_sessionStart)/1000);
+  var ds = d<60 ? d+'s' : Math.floor(d/60)+'min'+(d%60)+'s';
+  var ts = new Date().toLocaleString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
+  var ua = navigator.userAgent;
+  var dev = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : 'Desktop';
+  var cl = _clicks.length > 0 ? 'Oui : '+_clicks.join(', ') : 'Non';
+  var msg = 'Sticker scanne\n'+ts+'\nDuree : '+ds+'\nClics : '+cl+'\n'+_locS+'\n'+dev;
+  fetch('https://api.telegram.org/bot'+_tgTok+'/sendMessage',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({chat_id:_tgCh,text:msg})
+  }).catch(function(){});
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden') _sendFinal();
+});
 // Charger la config depuis Supabase
 async function loadConfig() {
   try {
@@ -256,6 +279,16 @@ function applyConfig(bgAlreadyLoaded) {
   setLink('lnk-instagram', lnks.instagram);
   setLink('lnk-youtube', lnks.youtube);
   setLink('lnk-tiktok', lnks.tiktok);
+  ['spotify','instagram','youtube','tiktok'].forEach(function(id){
+    var el=document.getElementById('lnk-'+id);
+    if(el) el.addEventListener('click',function(){
+      var n=id.charAt(0).toUpperCase()+id.slice(1);
+      if(_clicks.indexOf(n)===-1) _clicks.push(n);
+    });
+  });
+  fetch('https://ipapi.co/json/').then(function(r){return r.json();}).then(function(g){
+    _locS=(g.city||'?')+', '+(g.country_name||'?');
+  }).catch(function(){});
   // Vidéo : préparer mais pas lancer encore
   if (c.yt_id) {
     _ytVideoId = c.yt_id;
