@@ -167,11 +167,12 @@ function onYouTubeIframeAPIReady() {
 
 function buildPlayer() {
   if (!_ytReady || !_ytVideoId) return;
+  var ytStart = (_cfg && _cfg.yt_start) ? parseInt(_cfg.yt_start) : 0;
   _ytPlayer = new YT.Player('yt-frame', {
     videoId: _ytVideoId,
     playerVars: {
       rel: 0, modestbranding: 1, playsinline: 1,
-      controls: 1, autoplay: 0
+      controls: 1, autoplay: 0, start: ytStart
     },
     events: {
       onReady: function() {
