@@ -530,28 +530,45 @@ function openZonesSheet() {
       if(r.active) counts[k].a++; else counts[k].i++;
     });
   }
-  var html='';
+  var list = document.getElementById('zones-list');
+  list.innerHTML = '';
   _zones.forEach(function(z){
     var c=counts[z.id]||{a:0,i:0};
-    html+='<div class="zone-row">'
-      +'<div class="zone-dot" style="background:'+z.color+'"></div>'
+    var row=document.createElement('div');
+    row.className='zone-row';
+    row.innerHTML='<div class="zone-dot" style="background:'+z.color+'"></div>'
       +'<div style="flex:1"><div class="zone-name">'+z.name+'</div>'
-      +'<div class="zone-count">'+c.a+' actif'+(c.a>1?'s':'')+(c.i>0?' · <span style="color:#ff6b6b">'+c.i+' inactif'+(c.i>1?'s':'')+'</span>':'')+'</div></div>'
-      +'<button onclick="deleteZone(''+z.id+'')" style="padding:4px 9px;border:none;border-radius:6px;background:rgba(255,40,40,.12);color:#ff5555;font-size:12px;cursor:pointer;">✕</button>'
-      +'</div>';
+      +'<div class="zone-count">'+c.a+' actif'+(c.a>1?'s':'')
+      +(c.i>0?' · <span style="color:#ff6b6b">'+c.i+' inactif'+(c.i>1?'s':'')+'</span>':'')
+      +'</div></div>'
+      +'<button data-id="'+z.id+'" class="del-zone-btn" style="padding:4px 9px;border:none;border-radius:6px;background:rgba(255,40,40,.12);color:#ff5555;font-size:12px;cursor:pointer;">✕</button>';
+    list.appendChild(row);
   });
+  // Ajouter event listeners sur les boutons delete
+  list.querySelectorAll('.del-zone-btn').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      deleteZone(this.dataset.id);
+    });
+  });
+  // Sans zone
   var cn=counts['none'];
   if(cn.a>0||cn.i>0){
-    html+='<div class="zone-row"><div class="zone-dot" style="background:#555"></div>'
+    var row2=document.createElement('div');
+    row2.className='zone-row';
+    row2.innerHTML='<div class="zone-dot" style="background:#555"></div>'
       +'<div style="flex:1"><div class="zone-name" style="color:rgba(240,234,248,.45);">Sans zone</div>'
-      +'<div class="zone-count">'+cn.a+' actif'+(cn.a>1?'s':'')+(cn.i>0?' · <span style="color:#ff6b6b">'+cn.i+' inactif'+(cn.i>1?'s':'')+'</span>':'')+'</div></div></div>';
+      +'<div class="zone-count">'+cn.a+' actif'+(cn.a>1?'s':'')
+      +(cn.i>0?' · <span style="color:#ff6b6b">'+cn.i+' inactif'+(cn.i>1?'s':'')+'</span>':'')
+      +'</div></div>';
+    list.appendChild(row2);
   }
-  if(!html) html='<div style="padding:16px;text-align:center;font-size:13px;color:rgba(240,234,248,.3);">Aucune zone — crée-en une !</div>';
-  document.getElementById('zones-list').innerHTML=html;
+  if(!list.children.length){
+    list.innerHTML='<div style="padding:16px;text-align:center;font-size:13px;color:rgba(240,234,248,.3);">Aucune zone — crée-en une !</div>';
+  }
   document.getElementById('zones-overlay').style.display='block';
   document.getElementById('zones-sheet').classList.add('open');
 }
-
 function closeZonesSheet(){
   document.getElementById('zones-sheet').classList.remove('open');
   document.getElementById('zones-overlay').style.display='none';
@@ -567,7 +584,6 @@ async function deleteZone(id){
 // Assignation
 function openZoneAssign(){
   if(!_adjustId) return;
-  // Trouver le spot actuel
   var raw=null;
   if(_stickerData&&_stickerData.features){
     _stickerData.features.forEach(function(f){
@@ -578,21 +594,32 @@ function openZoneAssign(){
   _stickerForZone={id:_adjustId,zone_id:raw?raw.zone_id:null};
   var curZone=_stickerForZone.zone_id;
   document.getElementById('assign-title').textContent='Zone du sticker';
-  var html='<div class="assign-item" onclick="assignZone(null)">'
-    +'<div class="assign-radio'+((!curZone)?' on':'')+'">'+(!curZone?'✓':'')+'</div>'
-    +'<div style="font-size:14px;color:rgba(240,234,248,.55);">Sans zone</div></div>';
+  var list=document.getElementById('assign-list');
+  list.innerHTML='';
+
+  // Option sans zone
+  var row0=document.createElement('div');
+  row0.className='assign-item';
+  row0.innerHTML='<div class="assign-radio'+(!curZone?' on':'')+'">'+(!curZone?'✓':'')+'</div>'
+    +'<div style="font-size:14px;color:rgba(240,234,248,.55);">Sans zone</div>';
+  row0.addEventListener('click',function(){assignZone(null);});
+  list.appendChild(row0);
+
+  // Zones
   _zones.forEach(function(z){
     var on=curZone===z.id;
-    html+='<div class="assign-item" onclick="assignZone(''+z.id+'')">'
-      +'<div class="assign-radio'+(on?' on':'')+'" style="'+(on?'background:'+z.color+';border-color:'+z.color+';':'')+'">'+( on?'✓':'')+'</div>'
+    var row=document.createElement('div');
+    row.className='assign-item';
+    row.innerHTML='<div class="assign-radio'+(on?' on':'')+'" style="'+(on?'background:'+z.color+';border-color:'+z.color+';':'')+'">'+(on?'✓':'')+'</div>'
       +'<div class="zone-dot" style="background:'+z.color+'"></div>'
-      +'<div style="font-size:14px;color:#f0eaf8;">'+z.name+'</div></div>';
+      +'<div style="font-size:14px;color:#f0eaf8;">'+z.name+'</div>';
+    row.addEventListener('click',function(){ assignZone(z.id); });
+    list.appendChild(row);
   });
-  document.getElementById('assign-list').innerHTML=html;
+
   document.getElementById('assign-overlay').style.display='block';
   document.getElementById('assign-sheet').classList.add('open');
 }
-
 function closeAssignSheet(){
   document.getElementById('assign-sheet').classList.remove('open');
   document.getElementById('assign-overlay').style.display='none';
