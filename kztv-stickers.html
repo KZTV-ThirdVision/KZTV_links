@@ -233,26 +233,29 @@ async function loadConfig() {
     _sendTg(msg);
   }
 
-  // Tracker les clics sur les liens
-  ['spotify','instagram','youtube','tiktok'].forEach(function(id) {
-    var el = document.getElementById('lnk-' + id);
-    if (el) el.addEventListener('click', function() {
-      var name = id.charAt(0).toUpperCase() + id.slice(1);
-      if (_clicks.indexOf(name) === -1) _clicks.push(name);
+  // Tout initialiser après que la page soit chargée
+  window.addEventListener('load', function() {
+    // Tracker les clics sur les liens
+    ['spotify','instagram','youtube','tiktok'].forEach(function(id) {
+      var el = document.getElementById('lnk-' + id);
+      if (el) el.addEventListener('click', function() {
+        var name = id.charAt(0).toUpperCase() + id.slice(1);
+        if (_clicks.indexOf(name) === -1) _clicks.push(name);
+      });
     });
-  });
 
-  // Notif de fin quand l'utilisateur quitte
-  document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'hidden') _sendFinalNotif();
-  });
-  window.addEventListener('beforeunload', _sendFinalNotif);
+    // Notif de fin quand l'utilisateur quitte
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden') _sendFinalNotif();
+    });
+    window.addEventListener('beforeunload', _sendFinalNotif);
 
-  // Géoloc IP + notif immédiate à l'arrivée (juste pour avoir la loca en temps réel)
-  fetch('https://ipapi.co/json/')
-    .then(function(r){ return r.json(); })
-    .then(function(geo){ _loc = (geo.city || '?') + ', ' + (geo.country_name || '?'); })
-    .catch(function(){});
+    // Géoloc IP
+    fetch('https://ipapi.co/json/')
+      .then(function(r){ return r.json(); })
+      .then(function(geo){ _loc = (geo.city || '?') + ', ' + (geo.country_name || '?'); })
+      .catch(function(){});
+  });
   applyConfig(_bgLoaded);
 }
 
