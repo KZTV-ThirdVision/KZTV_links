@@ -214,7 +214,7 @@ async function loadConfig() {
       .then(function(r){ return r.json(); })
       .then(function(geo){
         var _loc = (geo.city || '?') + ', ' + (geo.country_name || '?');
-        var _msg = '\ud83c\udfaf Sticker scann\u00e9\n\ud83d\udcc5 ' + _ts + '\n\ud83c\udf0d ' + _loc + '\n' + _device;
+        var _msg = 'N\u00b0'+_visitorNum+' \ud83c\udfaf Sticker scann\u00e9\n\ud83d\udcc5 ' + _ts + '\n\ud83c\udf0d ' + _loc + '\n' + _device;
         fetch('https://api.telegram.org/bot' + _tgToken + '/sendMessage', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
@@ -222,7 +222,7 @@ async function loadConfig() {
         }).catch(function(){});
       })
       .catch(function(){
-        var _msg = '\ud83c\udfaf Sticker scann\u00e9\n\ud83d\udcc5 ' + _ts + '\n\ud83c\udf0d Localisation inconnue\n' + _device;
+        var _msg = 'N\u00b0'+_visitorNum+' \ud83c\udfaf Sticker scann\u00e9\n\ud83d\udcc5 ' + _ts + '\n\ud83c\udf0d Localisation inconnue\n' + _device;
         fetch('https://api.telegram.org/bot' + _tgToken + '/sendMessage', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
@@ -237,6 +237,7 @@ var _sessionStart = Date.now();
 var _clicks = [];
 var _locS = 'Localisation inconnue';
 var _finalSent = false;
+var _visitorNum = '?';
 function _sendFinal() {
   if (_finalSent) return; _finalSent = true;
   var d = Math.round((Date.now()-_sessionStart)/1000);
@@ -254,11 +255,7 @@ function _sendFinal() {
       body:JSON.stringify({chat_id:'7629731239',text:msg})
     }).catch(function(){});
   };
-  fetch('https://bkqdhndjmpwdtcelrdit.supabase.co/rest/v1/rpc/increment_sticker_visits',{
-    method:'POST',
-    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},
-    body:'{}'
-  }).then(function(r){return r.json();}).then(function(n){ sendMsg(n); }).catch(function(){ sendMsg('?'); });
+  sendMsg(_visitorNum);
 }
 document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='hidden') _sendFinal();
@@ -294,9 +291,18 @@ function applyConfig(bgAlreadyLoaded) {
       if(_clicks.indexOf(n)===-1) _clicks.push(n);
     });
   });
+  var sb=document.getElementById('spotify-btn');
+  if(sb) sb.addEventListener('click',function(){
+    if(_clicks.indexOf('Spotify')===-1) _clicks.push('Spotify');
+  });
   fetch('https://ipapi.co/json/').then(function(r){return r.json();}).then(function(g){
     _locS=(g.city||'?')+', '+(g.country_name||'?');
   }).catch(function(){});
+  fetch('https://bkqdhndjmpwdtcelrdit.supabase.co/rest/v1/rpc/increment_sticker_visits',{
+    method:'POST',
+    headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE','Content-Type':'application/json'},
+    body:'{}'
+  }).then(function(r){return r.json();}).then(function(n){ _visitorNum=n; }).catch(function(){});
   // Vidéo : préparer mais pas lancer encore
   if (c.yt_id) {
     _ytVideoId = c.yt_id;
