@@ -246,20 +246,19 @@ function _sendFinal() {
   var dev = /iPhone|iPad/.test(ua) ? '📱 iOS' : /Android/.test(ua) ? '🤖 Android' : '💻 Desktop';
   var cl = _clicks.length > 0 ? '✅ '+_clicks.join(', ') : '❌ Aucun';
   var nl = String.fromCharCode(10);
+  var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE';
   var sendMsg = function(num) {
-    var prefix = num ? 'N°'+num+' ' : '';
-    var msg = prefix+'🎯 Session terminée'+nl+'📅 '+ts+nl+'⏱ '+ds+nl+'🖱 '+cl+nl+'🌍 '+_locS+nl+dev;
+    var msg = 'N°'+num+' 🎯 Session terminée'+nl+'📅 '+ts+nl+'⏱ '+ds+nl+'🖱 '+cl+nl+'🌍 '+_locS+nl+dev;
     fetch('https://api.telegram.org/bot8666858581:AAEYA1bsIIUCv2YctFbqPXPdjzPg4TFG504/sendMessage',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({chat_id:'7629731239',text:msg})
     }).catch(function(){});
   };
-  fetch('https://bkqdhndjmpwdtcelrdit.supabase.co/rest/v1/spots?type=eq.sticker&select=scans_count',{
-    headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrcWRobmRqbXB3ZHRjZWxyZGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTc5NDQsImV4cCI6MjA5Mzk5Mzk0NH0.CyYJFze2ggc1x0JNhYp7abCEWR1vOJq2r3dB8TowUEE'}
-  }).then(function(r){return r.json();}).then(function(rows){
-    var total = rows.reduce(function(a,b){return a+(b.scans_count||0);},0);
-    sendMsg(total);
-  }).catch(function(){ sendMsg(null); });
+  fetch('https://bkqdhndjmpwdtcelrdit.supabase.co/rest/v1/rpc/increment_sticker_visits',{
+    method:'POST',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},
+    body:'{}'
+  }).then(function(r){return r.json();}).then(function(n){ sendMsg(n); }).catch(function(){ sendMsg('?'); });
 }
 document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='hidden') _sendFinal();
