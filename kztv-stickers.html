@@ -231,6 +231,11 @@ async function loadConfig() {
         }).catch(function(){});
       });
   } catch(e) {}
+  // Reset session pour éviter faux positifs iOS
+  sessionStorage.removeItem('kztv_final_sent');
+  _finalSent = false;
+  _sessionStart = Date.now();
+  _clicks = [];
   applyConfig(_bgLoaded);
 }
 
