@@ -97,6 +97,14 @@ h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,23
     <span id="btn-label">Poser ici</span>
   </button>
   <div id="status"></div>
+  <!-- Bouton désactiver le plus proche -->
+  <button id="deactivate-btn" onclick="deactivateNearest()" style="
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;padding:10px 20px;color:rgba(240,234,248,.6);
+    font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.05em;
+    margin-top:-8px;
+  ">📌 Désactiver le plus proche</button>
+  <div id="deactivate-status" style="font-size:12px;color:rgba(240,234,248,.4);text-align:center;min-height:16px;"></div>
   <div id="history">
     <h2>Posés récemment</h2>
     <div id="history-list"><div class="h-empty">Aucun sticker posé</div></div>
@@ -484,6 +492,59 @@ function goToSticker(id) {
     .then(function(r){return r.json();})
     .then(function(d){ if(d[0]) startAdjust(d[0]); });
   }, 300);
+}
+
+async function deactivateNearest() {
+  var btn = document.getElementById('deactivate-btn');
+  var st = document.getElementById('deactivate-status');
+  btn.style.opacity = '0.5';
+  st.textContent = 'Localisation...';
+
+  navigator.geolocation.getCurrentPosition(async function(pos) {
+    var lat = pos.coords.latitude, lng = pos.coords.longitude;
+
+    // Récupérer les stickers actifs
+    try {
+      var r = await fetch(SB+'/rest/v1/spots?type=eq.sticker&active=eq.true&select=id,lat,lng,label', {
+        headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}
+      });
+      var spots = await r.json();
+      if (!spots.length) { st.textContent = 'Aucun sticker actif'; btn.style.opacity='1'; return; }
+
+      // Trouver le plus proche
+      var nearest = null, minDist = Infinity;
+      spots.forEach(function(s) {
+        if (!s.lat||!s.lng) return;
+        var dx = s.lng - lng, dy = s.lat - lat;
+        var dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < minDist) { minDist = dist; nearest = s; }
+      });
+
+      if (!nearest) { st.textContent = 'Aucun sticker trouvé'; btn.style.opacity='1'; return; }
+
+      // Désactiver
+      await fetch(SB+'/rest/v1/spots?id=eq.'+nearest.id, {
+        method:'PATCH',
+        headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+        body:JSON.stringify({active:false})
+      });
+
+      if (navigator.vibrate) navigator.vibrate([50,30,50]);
+      var distM = Math.round(minDist * 111320);
+      st.textContent = '🔴 Désactivé : '+(nearest.label||'Sticker')+' ('+distM+'m)';
+      btn.style.opacity = '1';
+
+      // Recharger markers si map ouverte
+      if (_map) loadStickerMarkers();
+
+    } catch(e) {
+      st.textContent = 'Erreur';
+      btn.style.opacity = '1';
+    }
+  }, function() {
+    st.textContent = 'GPS non disponible';
+    btn.style.opacity = '1';
+  }, {enableHighAccuracy:true, timeout:8000});
 }
 </script>
 </body>
