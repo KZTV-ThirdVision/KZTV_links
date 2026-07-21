@@ -164,7 +164,7 @@ h1{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:rgba(240,23
     <div id="map-addr">Déplacez la carte pour ajuster</div>
     <div class="map-btns">
       <button class="map-btn" onclick="deleteAdjustSpot()" id="map-delete-btn" style="display:none;background:rgba(255,40,40,.15);color:#ff5555;border:1px solid rgba(255,40,40,.2);flex:0 0 48px;font-size:16px;">🗑</button>
-      <button class="map-btn secondary" onclick="cancelAdjust()">Annuler</button>
+      <button class="map-btn" onclick="toggleAdjustActive()" id="map-toggle-btn" style="display:none;background:rgba(255,165,0,.15);color:#ffaa00;border:1px solid rgba(255,165,0,.3);flex:0 0 48px;font-size:16px;">⏸</button>
       <button class="map-btn primary" onclick="confirmAdjust()">✅ Confirmer</button>
     </div>
   </div>
@@ -223,6 +223,10 @@ function initMap() {
     _map.on('click','stickers-layer',function(e){
       var props = e.features[0].properties;
       startAdjust(JSON.parse(props._raw));
+    });
+    // Clic sur fond map (pas sur un point) → fermer la barre
+    _map.on('click', function(e) {
+      if (!e.defaultPrevented && _adjustMode) cancelAdjust();
     });
     _map.on('mouseenter','stickers-layer',function(){ _map.getCanvas().style.cursor='pointer'; });
     _map.on('mouseleave','stickers-layer',function(){ _map.getCanvas().style.cursor=''; });
@@ -312,7 +316,10 @@ function startAdjust(spot) {
   document.getElementById('map-bar').style.display = 'flex';
   document.getElementById('map-addr').textContent = spot.label || 'Déplacez la carte pour ajuster';
   document.getElementById('map-delete-btn').style.display = 'flex';
+  document.getElementById('map-toggle-btn').style.display = 'flex';
   document.getElementById('add-btn').style.display = 'none';
+  // Mettre à jour l'icône selon l'état actuel
+  _updateToggleBtn();
   _map.on('move', onMapMove);
 }
 
@@ -397,6 +404,50 @@ async function addFromMap() {
   }, 1200);
 }
 
+function _updateToggleBtn() {
+  if (!_adjustId || !_stickerData) return;
+  var btn = document.getElementById('map-toggle-btn');
+  var raw = null;
+  _stickerData.features.forEach(function(f){
+    var r = JSON.parse(f.properties._raw||'{}');
+    if (r.id === _adjustId) raw = r;
+  });
+  if (!raw) return;
+  if (raw.active) {
+    btn.textContent = '⏸';
+    btn.title = 'Désactiver';
+    btn.style.background = 'rgba(255,165,0,.15)';
+    btn.style.color = '#ffaa00';
+    btn.style.border = '1px solid rgba(255,165,0,.3)';
+  } else {
+    btn.textContent = '▶';
+    btn.title = 'Réactiver';
+    btn.style.background = 'rgba(42,204,90,.15)';
+    btn.style.color = '#2acc5a';
+    btn.style.border = '1px solid rgba(42,204,90,.3)';
+  }
+}
+
+async function toggleAdjustActive() {
+  if (!_adjustId) return;
+  var raw = null;
+  _stickerData.features.forEach(function(f){
+    var r = JSON.parse(f.properties._raw||'{}');
+    if (r.id === _adjustId) raw = r;
+  });
+  if (!raw) return;
+  var newActive = !raw.active;
+  await fetch(SB+'/rest/v1/spots?id=eq.'+_adjustId, {
+    method:'PATCH',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({active:newActive})
+  });
+  if (navigator.vibrate) navigator.vibrate([40]);
+  document.getElementById('map-addr').textContent = newActive ? '✅ Réactivé' : '⏸ Désactivé';
+  setTimeout(cancelAdjust, 800);
+  loadStickerMarkers();
+}
+
 function cancelAdjust() {
   _adjustMode = false;
   _adjustId = null;
@@ -404,6 +455,7 @@ function cancelAdjust() {
   document.getElementById('map-crosshair').style.display = 'none';
   document.getElementById('map-bar').style.display = 'none';
   document.getElementById('map-delete-btn').style.display = 'none';
+  document.getElementById('map-toggle-btn').style.display = 'none';
   document.getElementById('add-btn').style.display = 'flex';
 }
 
