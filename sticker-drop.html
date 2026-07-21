@@ -221,12 +221,14 @@ function initMap() {
     });
     // Click sur marker → ajuster
     _map.on('click','stickers-layer',function(e){
+      e.preventDefault();
       var props = e.features[0].properties;
       startAdjust(JSON.parse(props._raw));
     });
     // Clic sur fond map (pas sur un point) → fermer la barre
     _map.on('click', function(e) {
-      if (!e.defaultPrevented && _adjustMode) cancelAdjust();
+      var features = _map.queryRenderedFeatures(e.point, {layers:['stickers-layer']});
+      if (features.length === 0 && _adjustMode) cancelAdjust();
     });
     _map.on('mouseenter','stickers-layer',function(){ _map.getCanvas().style.cursor='pointer'; });
     _map.on('mouseleave','stickers-layer',function(){ _map.getCanvas().style.cursor=''; });
